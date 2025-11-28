@@ -129,4 +129,26 @@ describe('VideoContext', () => {
             expect(result.current.filteredVideos[0].id).toBe(videoId);
         });
     });
+
+    it('manages tag colors', async () => {
+        const { result } = renderHook(() => useVideoContext(), {
+            wrapper: VideoProvider,
+        });
+
+        const tagName = 'ColorTag';
+        const color = '#ff0000';
+
+        // Default color
+        expect(result.current.getTagColor(tagName)).toBe('#2563EB');
+
+        // Update color
+        act(() => {
+            result.current.updateTagColor(tagName, color);
+        });
+
+        await waitFor(() => {
+            expect(result.current.getTagColor(tagName)).toBe(color);
+            expect(result.current.tagMetadata[tagName].color).toBe(color);
+        });
+    });
 });

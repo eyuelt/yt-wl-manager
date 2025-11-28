@@ -11,6 +11,7 @@ export const VideoProvider = ({ children }) => {
     const [tags, setTags] = useState({}); // { videoId: ['tag1', 'tag2'] }
     const [allTags, setAllTags] = useState(new Set());
     const [selectedCategory, setSelectedCategory] = useState('All');
+    const [tagMetadata, setTagMetadata] = useState({}); // { tagName: { color: '#hex' } }
 
     useEffect(() => {
         // Load initial data
@@ -19,8 +20,17 @@ export const VideoProvider = ({ children }) => {
 
         // Load tags from local storage
         const savedTags = localStorage.getItem('yt-wl-tags');
+        const savedMetadata = localStorage.getItem('yt-wl-tag-metadata');
+
+        let parsedTags = {};
+        let parsedMetadata = {};
+
+        if (savedMetadata) {
+            parsedMetadata = JSON.parse(savedMetadata);
+        }
+
         if (savedTags) {
-            const parsedTags = JSON.parse(savedTags);
+            parsedTags = JSON.parse(savedTags);
             setTags(parsedTags);
 
             // Reconstruct allTags set
@@ -45,7 +55,10 @@ export const VideoProvider = ({ children }) => {
             setTags(initialTags);
             setAllTags(newAllTags);
             localStorage.setItem('yt-wl-tags', JSON.stringify(initialTags));
+            parsedTags = initialTags;
         }
+
+        setTagMetadata(parsedMetadata);
     }, []);
 
     const addTag = (videoId, tag) => {
@@ -77,6 +90,17 @@ export const VideoProvider = ({ children }) => {
         }
     };
 
+    const updateTagColor = (tag, color) => {
+        const newMetadata = { ...tagMetadata };
+        newMetadata[tag] = { ...newMetadata[tag], color };
+        setTagMetadata(newMetadata);
+        localStorage.setItem('yt-wl-tag-metadata', JSON.stringify(newMetadata));
+    };
+
+    const getTagColor = (tag) => {
+        return tagMetadata[tag]?.color || '#2563EB'; // Default to blue-600
+    };
+
     const filteredVideos = videos.filter(video => {
         if (selectedCategory === 'All') return true;
         if (selectedCategory === 'Uncategorized') {
@@ -91,10 +115,13 @@ export const VideoProvider = ({ children }) => {
             filteredVideos,
             tags,
             allTags: Array.from(allTags),
+            tagMetadata,
             selectedCategory,
             setSelectedCategory,
             addTag,
-            removeTag
+            removeTag,
+            updateTagColor,
+            getTagColor
         }}>
             {children}
         </VideoContext.Provider>

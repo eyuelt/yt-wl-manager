@@ -3,7 +3,7 @@ import { useVideoContext } from '../context/VideoContext';
 import { Tag, Hash } from 'lucide-react';
 
 const Sidebar = () => {
-    const { allTags, selectedCategory, setSelectedCategory, videos } = useVideoContext();
+    const { allTags, selectedCategory, setSelectedCategory, videos, updateTagColor, getTagColor } = useVideoContext();
 
     const categories = ['All', 'Uncategorized', ...allTags.sort()];
 
@@ -18,23 +18,46 @@ const Sidebar = () => {
 
             <nav className="flex-1 px-4 pb-4">
                 <div className="space-y-1">
-                    {categories.map(category => (
-                        <button
-                            key={category}
-                            onClick={() => setSelectedCategory(category)}
-                            className={`w-full text-left px-4 py-2 rounded-lg transition-colors flex items-center gap-3 ${selectedCategory === category
-                                    ? 'bg-red-600 text-white'
-                                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                                }`}
-                        >
-                            {category === 'All' || category === 'Uncategorized' ? (
-                                <Hash size={18} />
-                            ) : (
-                                <Tag size={18} />
-                            )}
-                            <span className="truncate">{category}</span>
-                        </button>
-                    ))}
+                    {categories.map(category => {
+                        const isSystemCategory = category === 'All' || category === 'Uncategorized';
+                        const tagColor = !isSystemCategory ? getTagColor(category) : null;
+
+                        return (
+                            <div key={category} className="group relative flex items-center">
+                                <button
+                                    onClick={() => setSelectedCategory(category)}
+                                    className={`w-full text-left px-4 py-2 rounded-lg transition-colors flex items-center gap-3 ${selectedCategory === category
+                                        ? 'bg-red-600 text-white'
+                                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                                        }`}
+                                >
+                                    {isSystemCategory ? (
+                                        <Hash size={18} />
+                                    ) : (
+                                        <Tag size={18} style={{ color: selectedCategory === category ? 'white' : tagColor }} />
+                                    )}
+                                    <span className="truncate flex-1">{category}</span>
+                                </button>
+
+                                {!isSystemCategory && (
+                                    <input
+                                        type="color"
+                                        value={tagColor}
+                                        onChange={(e) => updateTagColor(category, e.target.value)}
+                                        className="absolute right-2 w-6 h-6 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
+                                        onClick={(e) => e.stopPropagation()}
+                                        title="Change tag color"
+                                    />
+                                )}
+                                {!isSystemCategory && (
+                                    <div
+                                        className="absolute right-2 w-4 h-4 rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/20"
+                                        style={{ backgroundColor: tagColor }}
+                                    />
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             </nav>
         </div>
