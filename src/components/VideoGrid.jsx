@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useVideoContext } from '../context/VideoContext';
 import VideoCard from './VideoCard';
@@ -6,29 +6,45 @@ import VideoCard from './VideoCard';
 const VideoGrid = () => {
     const { filteredVideos } = useVideoContext();
     const parentRef = useRef(null);
+    const resizeObserverRef = useRef(null);
     const [columnCount, setColumnCount] = useState(4);
 
     // Update column count based on container width
-    useEffect(() => {
-        if (!parentRef.current) return;
-
-        const updateColumns = () => {
-            const width = parentRef.current.offsetWidth;
-            if (width < 640) setColumnCount(1);      // sm
-            else if (width < 1024) setColumnCount(2); // lg
-            else if (width < 1280) setColumnCount(3); // xl
-            else setColumnCount(4);                   // 2xl+
-        };
-
-        updateColumns();
-        const resizeObserver = new ResizeObserver(updateColumns);
-        resizeObserver.observe(parentRef.current);
-
-        return () => resizeObserver.disconnect();
+    const updateColumns = useCallback((element) => {
+        if (!element) return;
+        const width = element.offsetWidth;
+        if (width < 640) setColumnCount(1);      // sm
+        else if (width < 1024) setColumnCount(2); // lg
+        else if (width < 1280) setColumnCount(3); // xl
+        else setColumnCount(4);                   // 2xl+
     }, []);
 
-    // Calculate row count
-    const rowCount = Math.ceil(filteredVideos.length / columnCount);
+    // Ref callback to set up ResizeObserver when element is attached
+    const setParentRef = useCallback((element) => {
+        // Clean up previous observer
+        if (resizeObserverRef.current) {
+            resizeObserverRef.current.disconnect();
+        }
+
+        parentRef.current = element;
+
+        if (element) {
+            // Initial column calculation
+            updateColumns(element);
+
+            // Set up ResizeObserver
+            resizeObserverRef.current = new ResizeObserver(() => {
+                updateColumns(element);
+            });
+            resizeObserverRef.current.observe(element);
+        }
+    }, [updateColumns]);
+
+    // Calculate row count - memoize to prevent unnecessary recalculations
+    const rowCount = useMemo(
+        () => Math.ceil(filteredVideos.length / columnCount),
+        [filteredVideos.length, columnCount]
+    );
 
     // Create virtualizer for rows
     const rowVirtualizer = useVirtualizer({
@@ -37,6 +53,11 @@ const VideoGrid = () => {
         estimateSize: () => 400, // Estimated height of each row (card height + gap)
         overscan: 2, // Render 2 extra rows above and below viewport
     });
+
+    // Force remeasure when column count changes
+    useEffect(() => {
+        rowVirtualizer.measure();
+    }, [columnCount, rowVirtualizer]);
 
     if (filteredVideos.length === 0) {
         return (
@@ -47,7 +68,7 @@ const VideoGrid = () => {
     }
 
     return (
-        <div ref={parentRef} className="h-screen overflow-auto p-6">
+        <div ref={setParentRef} className="h-screen overflow-auto p-6">
             <div
                 style={{
                     height: `${rowVirtualizer.getTotalSize()}px`,
@@ -70,7 +91,12 @@ const VideoGrid = () => {
                                 transform: `translateY(${virtualRow.start}px)`,
                             }}
                         >
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            <div
+                                className="grid gap-6"
+                                style={{
+                                    gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+                                }}
+                            >
                                 {rowVideos.map((video) => (
                                     <VideoCard key={video.id} video={video} />
                                 ))}
