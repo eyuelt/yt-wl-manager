@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import VideoGrid from './VideoGrid';
 import { VideoProvider } from '../context/VideoContext';
@@ -27,11 +27,38 @@ vi.mock('../../wl.json', () => ({
     },
 }));
 
+// Mock ResizeObserver
+global.ResizeObserver = class ResizeObserver {
+    constructor(callback) {
+        this.callback = callback;
+    }
+    observe() {
+        // Trigger callback with mock dimensions
+        this.callback([{ target: { offsetWidth: 1280 } }]);
+    }
+    unobserve() {}
+    disconnect() {}
+};
+
 const renderWithContext = (component) => {
     return render(<VideoProvider>{component}</VideoProvider>);
 };
 
 describe('VideoGrid', () => {
+    beforeEach(() => {
+        // Mock offsetWidth for the virtualizer container
+        Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+            configurable: true,
+            value: 1280,
+        });
+
+        // Mock offsetHeight for virtualization to work
+        Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+            configurable: true,
+            value: 1000,
+        });
+    });
+
     it('renders a grid of videos', () => {
         renderWithContext(<VideoGrid />);
 

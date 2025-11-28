@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import App from './App';
 import { VideoProvider } from './context/VideoContext';
@@ -29,6 +29,18 @@ vi.mock('../wl.json', () => ({
     },
 }));
 
+// Mock ResizeObserver
+global.ResizeObserver = class ResizeObserver {
+    constructor(callback) {
+        this.callback = callback;
+    }
+    observe() {
+        this.callback([{ target: { offsetWidth: 1280 } }]);
+    }
+    unobserve() {}
+    disconnect() {}
+};
+
 const renderApp = () => {
     return render(
         <VideoProvider>
@@ -38,6 +50,18 @@ const renderApp = () => {
 };
 
 describe('App Integration Tests', () => {
+    beforeEach(() => {
+        Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+            configurable: true,
+            value: 1280,
+        });
+
+        Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+            configurable: true,
+            value: 1000,
+        });
+    });
+
     it('renders the full app with sidebar and video grid', () => {
         renderApp();
 
