@@ -15,7 +15,20 @@ export const VideoProvider = ({ children }) => {
 
     useEffect(() => {
         // Load initial data
-        const initialVideos = wlData.entries || [];
+        const savedData = localStorage.getItem('yt-wl-data');
+        let initialVideos = [];
+
+        if (savedData) {
+            try {
+                initialVideos = JSON.parse(savedData);
+            } catch (e) {
+                console.error('Failed to parse saved video data', e);
+                initialVideos = wlData.entries || [];
+            }
+        } else {
+            initialVideos = wlData.entries || [];
+        }
+
         setVideos(initialVideos);
 
         // Load tags from local storage
@@ -59,7 +72,113 @@ export const VideoProvider = ({ children }) => {
         }
 
         setTagMetadata(parsedMetadata);
+
+        // Message listener for sync
+        const handleMessage = (event) => {
+            if (event.data && event.data.type === 'YT_WL_SYNC') {
+                console.log('Received synced videos:', event.data.videos);
+                const newVideos = event.data.videos;
+                setVideos(newVideos);
+                localStorage.setItem('yt-wl-data', JSON.stringify(newVideos));
+
+                // Re-run auto-tagging for new videos? 
+                // For now, let's just keep existing tags and maybe auto-tag new ones if we want to be fancy.
+                // But simple replacement is safer for now to avoid duplicates.
+                // Actually, we should probably merge or re-evaluate tags.
+                // Let's just re-run auto-tagging for the new set for simplicity in this iteration.
+                const initialTags = {};
+                const newAllTags = new Set();
+
+                newVideos.forEach(video => {
+                    // Keep existing tags if any
+                    if (tags[video.id]) {
+                        initialTags[video.id] = tags[video.id];
+                        tags[video.id].forEach(tag => newAllTags.add(tag));
+                    } else {
+                        const newTags = autoTag(video);
+                        if (newTags.length > 0) {
+                            initialTags[video.id] = newTags;
+                            newTags.forEach(tag => newAllTags.add(tag));
+                        }
+                    }
+                });
+
+                setTags(initialTags);
+                setAllTags(newAllTags);
+                localStorage.setItem('yt-wl-tags', JSON.stringify(initialTags));
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
     }, []);
+
+    const syncVideos = () => {
+        // IMPORTANT: Replace this with your actual extension ID from chrome://extensions/
+        const EXTENSION_ID = 'aiokgdfhinicjhknkhadpppmgmbnlhap';  // TODO(eyuel)
+
+        // Open YouTube Watch Later page
+        window.open(
+            'https://www.youtube.com/playlist?list=WL&auto_sync=true',
+            'YouTubeWL'
+        );
+
+        // Poll the extension for synced data
+        const pollInterval = setInterval(() => {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage(
+                    EXTENSION_ID,
+                    { type: 'GET_YT_WL_DATA' },
+                    (response) => {
+                        if (chrome.runtime.lastError) {
+                            console.warn('Extension not responding:', chrome.runtime.lastError.message);
+                            return;
+                        }
+
+                        if (response && response.success && response.videos) {
+                            console.log('Received synced videos from extension:', response.videos);
+                            const newVideos = response.videos;
+                            setVideos(newVideos);
+                            localStorage.setItem('yt-wl-data', JSON.stringify(newVideos));
+
+                            // Re-run auto-tagging
+                            const newTags = {};
+                            const newAllTags = new Set();
+
+                            newVideos.forEach(video => {
+                                if (tags[video.id]) {
+                                    newTags[video.id] = tags[video.id];
+                                    tags[video.id].forEach(tag => newAllTags.add(tag));
+                                } else {
+                                    const autoTags = autoTag(video);
+                                    if (autoTags.length > 0) {
+                                        newTags[video.id] = autoTags;
+                                        autoTags.forEach(tag => newAllTags.add(tag));
+                                    }
+                                }
+                            });
+
+                            setTags(newTags);
+                            setAllTags(newAllTags);
+                            localStorage.setItem('yt-wl-tags', JSON.stringify(newTags));
+
+                            // Clear the interval once we've received the data
+                            clearInterval(pollInterval);
+                            alert(`Successfully synced ${newVideos.length} videos!`);
+                        }
+                    }
+                );
+            } else {
+                console.warn('Chrome extension API not available.');
+                clearInterval(pollInterval);
+            }
+        }, 1000); // Poll every second
+
+        // Stop polling after 30 seconds
+        setTimeout(() => {
+            clearInterval(pollInterval);
+        }, 30000);
+    };
 
     const addTag = (videoId, tag) => {
         const newTags = { ...tags };
@@ -101,6 +220,36 @@ export const VideoProvider = ({ children }) => {
         return tagMetadata[tag]?.color || '#2563EB'; // Default to blue-600
     };
 
+    const resetToWlJson = () => {
+        // Clear all localStorage data
+        localStorage.removeItem('yt-wl-data');
+        localStorage.removeItem('yt-wl-tags');
+        localStorage.removeItem('yt-wl-tag-metadata');
+
+        // Reload from wl.json
+        const initialVideos = wlData.entries || [];
+        setVideos(initialVideos);
+
+        // Re-run auto-tagging
+        const initialTags = {};
+        const newAllTags = new Set();
+
+        initialVideos.forEach(video => {
+            const tags = autoTag(video);
+            if (tags.length > 0) {
+                initialTags[video.id] = tags;
+                tags.forEach(tag => newAllTags.add(tag));
+            }
+        });
+
+        setTags(initialTags);
+        setAllTags(newAllTags);
+        setTagMetadata({});
+        localStorage.setItem('yt-wl-tags', JSON.stringify(initialTags));
+
+        alert('Data reset to wl.json successfully!');
+    };
+
     const filteredVideos = videos.filter(video => {
         if (selectedCategory === 'All') return true;
         if (selectedCategory === 'Uncategorized') {
@@ -121,7 +270,9 @@ export const VideoProvider = ({ children }) => {
             addTag,
             removeTag,
             updateTagColor,
-            getTagColor
+            getTagColor,
+            syncVideos,
+            resetToWlJson
         }}>
             {children}
         </VideoContext.Provider>
