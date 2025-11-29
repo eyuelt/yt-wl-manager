@@ -1,19 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, RotateCcw } from 'lucide-react';
+import dataStore from '../utils/dataStore';
 
 const DataViewer = ({ isOpen, onClose, onReset }) => {
     const [activeTab, setActiveTab] = useState('videos');
+    const [videosData, setVideosData] = useState([]);
+    const [tagsData, setTagsData] = useState({});
+    const [metadataData, setMetadataData] = useState({});
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const loadData = async () => {
+            const videos = await dataStore.getVideos();
+            const tags = await dataStore.getTags();
+            const metadata = await dataStore.getTagMetadata();
+
+            setVideosData(videos);
+            setTagsData(tags);
+            setMetadataData(metadata);
+        };
+
+        loadData();
+
+        // Subscribe to changes
+        const unsubscribe = dataStore.subscribe(async ({ key, value }) => {
+            if (key === dataStore.KEYS.VIDEOS && value) {
+                setVideosData(value);
+            } else if (key === dataStore.KEYS.TAGS && value) {
+                setTagsData(value);
+            } else if (key === dataStore.KEYS.TAG_METADATA && value) {
+                setMetadataData(value);
+            }
+        });
+
+        return () => {
+            unsubscribe();
+        };
+    }, [isOpen]);
 
     if (!isOpen) return null;
-
-    const savedVideos = localStorage.getItem('yt-wl-data');
-    const savedTags = localStorage.getItem('yt-wl-tags');
-    const savedTagMetadata = localStorage.getItem('yt-wl-tag-metadata');
-
-    const videosData = savedVideos ? JSON.parse(savedVideos) : [];
-    const tagsData = savedTags ? JSON.parse(savedTags) : {};
-    const metadataData = savedTagMetadata ? JSON.parse(savedTagMetadata) : {};
 
     const handleReset = () => {
         if (window.confirm('Are you sure you want to reset all data to wl.json? This will delete all synced videos and custom tags.')) {

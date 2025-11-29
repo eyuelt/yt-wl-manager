@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Sidebar from './Sidebar';
 import { VideoProvider } from '../context/VideoContext';
@@ -24,9 +24,11 @@ describe('Sidebar', () => {
         expect(screen.getByText(/watch later/i)).toBeInTheDocument();
     });
 
-    it('displays video count', () => {
+    it('displays video count', async () => {
         renderWithContext(<Sidebar />);
-        expect(screen.getByText('2 videos')).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByText('2 videos')).toBeInTheDocument();
+        });
     });
 
     it('renders "All" category', () => {

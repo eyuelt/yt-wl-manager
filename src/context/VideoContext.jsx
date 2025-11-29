@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import wlData from '../../wl.json';
 import { autoTag } from '../utils/autoTag';
+import dataStore from '../utils/dataStore';
 
 const VideoContext = createContext();
 
@@ -14,78 +15,64 @@ export const VideoProvider = ({ children }) => {
     const [tagMetadata, setTagMetadata] = useState({}); // { tagName: { color: '#hex' } }
 
     useEffect(() => {
-        // Load initial data
-        const savedData = localStorage.getItem('yt-wl-data');
-        let initialVideos = [];
+        // Load initial data from dataStore
+        const loadInitialData = async () => {
+            let initialVideos = await dataStore.getVideos();
 
-        if (savedData) {
-            try {
-                initialVideos = JSON.parse(savedData);
-            } catch (e) {
-                console.error('Failed to parse saved video data', e);
+            if (initialVideos.length === 0) {
+                // No saved data, use wl.json
                 initialVideos = wlData.entries || [];
+                await dataStore.setVideos(initialVideos);
             }
-        } else {
-            initialVideos = wlData.entries || [];
-        }
 
-        setVideos(initialVideos);
+            setVideos(initialVideos);
 
-        // Load tags from local storage
-        const savedTags = localStorage.getItem('yt-wl-tags');
-        const savedMetadata = localStorage.getItem('yt-wl-tag-metadata');
+            // Load tags
+            let savedTags = await dataStore.getTags();
+            const savedMetadata = await dataStore.getTagMetadata();
 
-        let parsedTags = {};
-        let parsedMetadata = {};
+            if (Object.keys(savedTags).length === 0) {
+                // Run auto-tagging if no saved tags
+                const initialTags = {};
+                const newAllTags = new Set();
 
-        if (savedMetadata) {
-            parsedMetadata = JSON.parse(savedMetadata);
-        }
+                initialVideos.forEach(video => {
+                    const tags = autoTag(video);
+                    if (tags.length > 0) {
+                        initialTags[video.id] = tags;
+                        tags.forEach(tag => newAllTags.add(tag));
+                    }
+                });
 
-        if (savedTags) {
-            parsedTags = JSON.parse(savedTags);
-            setTags(parsedTags);
+                setTags(initialTags);
+                setAllTags(newAllTags);
+                await dataStore.setTags(initialTags);
+                savedTags = initialTags;
+            } else {
+                setTags(savedTags);
 
-            // Reconstruct allTags set
-            const newAllTags = new Set();
-            Object.values(parsedTags).forEach(videoTags => {
-                videoTags.forEach(tag => newAllTags.add(tag));
-            });
-            setAllTags(newAllTags);
-        } else {
-            // Run auto-tagging if no saved tags
-            const initialTags = {};
-            const newAllTags = new Set();
+                // Reconstruct allTags set
+                const newAllTags = new Set();
+                Object.values(savedTags).forEach(videoTags => {
+                    videoTags.forEach(tag => newAllTags.add(tag));
+                });
+                setAllTags(newAllTags);
+            }
 
-            initialVideos.forEach(video => {
-                const tags = autoTag(video);
-                if (tags.length > 0) {
-                    initialTags[video.id] = tags;
-                    tags.forEach(tag => newAllTags.add(tag));
-                }
-            });
+            setTagMetadata(savedMetadata);
+        };
 
-            setTags(initialTags);
-            setAllTags(newAllTags);
-            localStorage.setItem('yt-wl-tags', JSON.stringify(initialTags));
-            parsedTags = initialTags;
-        }
-
-        setTagMetadata(parsedMetadata);
+        loadInitialData();
 
         // Message listener for sync
-        const handleMessage = (event) => {
+        const handleMessage = async (event) => {
             if (event.data && event.data.type === 'YT_WL_SYNC') {
                 console.log('Received synced videos:', event.data.videos);
                 const newVideos = event.data.videos;
                 setVideos(newVideos);
-                localStorage.setItem('yt-wl-data', JSON.stringify(newVideos));
+                await dataStore.setVideos(newVideos);
 
-                // Re-run auto-tagging for new videos? 
-                // For now, let's just keep existing tags and maybe auto-tag new ones if we want to be fancy.
-                // But simple replacement is safer for now to avoid duplicates.
-                // Actually, we should probably merge or re-evaluate tags.
-                // Let's just re-run auto-tagging for the new set for simplicity in this iteration.
+                // Re-run auto-tagging for new videos
                 const initialTags = {};
                 const newAllTags = new Set();
 
@@ -105,12 +92,32 @@ export const VideoProvider = ({ children }) => {
 
                 setTags(initialTags);
                 setAllTags(newAllTags);
-                localStorage.setItem('yt-wl-tags', JSON.stringify(initialTags));
+                await dataStore.setTags(initialTags);
             }
         };
 
+        // Subscribe to dataStore changes (for cross-tab sync)
+        const unsubscribe = dataStore.subscribe(async ({ key, value }) => {
+            if (key === dataStore.KEYS.VIDEOS && value) {
+                setVideos(value);
+            } else if (key === dataStore.KEYS.TAGS && value) {
+                setTags(value);
+                // Reconstruct allTags
+                const newAllTags = new Set();
+                Object.values(value).forEach(videoTags => {
+                    videoTags.forEach(tag => newAllTags.add(tag));
+                });
+                setAllTags(newAllTags);
+            } else if (key === dataStore.KEYS.TAG_METADATA && value) {
+                setTagMetadata(value);
+            }
+        });
+
         window.addEventListener('message', handleMessage);
-        return () => window.removeEventListener('message', handleMessage);
+        return () => {
+            window.removeEventListener('message', handleMessage);
+            unsubscribe();
+        };
     }, []);
 
     const syncVideos = () => {
@@ -129,7 +136,7 @@ export const VideoProvider = ({ children }) => {
                 chrome.runtime.sendMessage(
                     EXTENSION_ID,
                     { type: 'GET_YT_WL_DATA' },
-                    (response) => {
+                    async (response) => {
                         if (chrome.runtime.lastError) {
                             console.warn('Extension not responding:', chrome.runtime.lastError.message);
                             return;
@@ -139,7 +146,7 @@ export const VideoProvider = ({ children }) => {
                             console.log('Received synced videos from extension:', response.videos);
                             const newVideos = response.videos;
                             setVideos(newVideos);
-                            localStorage.setItem('yt-wl-data', JSON.stringify(newVideos));
+                            await dataStore.setVideos(newVideos);
 
                             // Re-run auto-tagging
                             const newTags = {};
@@ -160,7 +167,7 @@ export const VideoProvider = ({ children }) => {
 
                             setTags(newTags);
                             setAllTags(newAllTags);
-                            localStorage.setItem('yt-wl-tags', JSON.stringify(newTags));
+                            await dataStore.setTags(newTags);
 
                             // Clear the interval once we've received the data
                             clearInterval(pollInterval);
@@ -180,7 +187,7 @@ export const VideoProvider = ({ children }) => {
         }, 30000);
     };
 
-    const addTag = (videoId, tag) => {
+    const addTag = async (videoId, tag) => {
         const newTags = { ...tags };
         if (!newTags[videoId]) {
             newTags[videoId] = [];
@@ -188,13 +195,13 @@ export const VideoProvider = ({ children }) => {
         if (!newTags[videoId].includes(tag)) {
             newTags[videoId].push(tag);
             setTags(newTags);
-            localStorage.setItem('yt-wl-tags', JSON.stringify(newTags));
+            await dataStore.setTags(newTags);
 
             setAllTags(prev => new Set(prev).add(tag));
         }
     };
 
-    const removeTag = (videoId, tag) => {
+    const removeTag = async (videoId, tag) => {
         const newTags = { ...tags };
         if (newTags[videoId]) {
             newTags[videoId] = newTags[videoId].filter(t => t !== tag);
@@ -202,33 +209,32 @@ export const VideoProvider = ({ children }) => {
                 delete newTags[videoId];
             }
             setTags(newTags);
-            localStorage.setItem('yt-wl-tags', JSON.stringify(newTags));
+            await dataStore.setTags(newTags);
 
             // Re-calculate all tags to see if we should remove it from the list
             // (Optional: keeping it in allTags might be better for UX)
         }
     };
 
-    const updateTagColor = (tag, color) => {
+    const updateTagColor = async (tag, color) => {
         const newMetadata = { ...tagMetadata };
         newMetadata[tag] = { ...newMetadata[tag], color };
         setTagMetadata(newMetadata);
-        localStorage.setItem('yt-wl-tag-metadata', JSON.stringify(newMetadata));
+        await dataStore.setTagMetadata(newMetadata);
     };
 
     const getTagColor = (tag) => {
         return tagMetadata[tag]?.color || '#2563EB'; // Default to blue-600
     };
 
-    const resetToWlJson = () => {
-        // Clear all localStorage data
-        localStorage.removeItem('yt-wl-data');
-        localStorage.removeItem('yt-wl-tags');
-        localStorage.removeItem('yt-wl-tag-metadata');
+    const resetToWlJson = async () => {
+        // Clear all data
+        await dataStore.clear();
 
         // Reload from wl.json
         const initialVideos = wlData.entries || [];
         setVideos(initialVideos);
+        await dataStore.setVideos(initialVideos);
 
         // Re-run auto-tagging
         const initialTags = {};
@@ -245,7 +251,8 @@ export const VideoProvider = ({ children }) => {
         setTags(initialTags);
         setAllTags(newAllTags);
         setTagMetadata({});
-        localStorage.setItem('yt-wl-tags', JSON.stringify(initialTags));
+        await dataStore.setTags(initialTags);
+        await dataStore.setTagMetadata({});
 
         alert('Data reset to wl.json successfully!');
     };

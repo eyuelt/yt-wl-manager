@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import VideoGrid from './VideoGrid';
 import { VideoProvider } from '../context/VideoContext';
 
@@ -59,24 +59,30 @@ describe('VideoGrid', () => {
         });
     });
 
-    it('renders a grid of videos', () => {
+    it('renders a grid of videos', async () => {
         renderWithContext(<VideoGrid />);
 
-        expect(screen.getByText('Test Video 1')).toBeInTheDocument();
-        expect(screen.getByText('Test Video 2')).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByText('Test Video 1')).toBeInTheDocument();
+            expect(screen.getByText('Test Video 2')).toBeInTheDocument();
+        });
     });
 
-    it('displays videos in a grid layout', () => {
+    it('displays videos in a grid layout', async () => {
         const { container } = renderWithContext(<VideoGrid />);
 
-        const gridContainer = container.querySelector('.grid');
-        expect(gridContainer).toBeInTheDocument();
+        await waitFor(() => {
+            const gridContainer = container.querySelector('.grid');
+            expect(gridContainer).toBeInTheDocument();
+        });
     });
 
-    it('renders video cards', () => {
+    it('renders video cards', async () => {
         renderWithContext(<VideoGrid />);
 
-        expect(screen.getByText('Test Channel 1')).toBeInTheDocument();
-        expect(screen.getByText('Test Channel 2')).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByText('Test Channel 1')).toBeInTheDocument();
+            expect(screen.getByText('Test Channel 2')).toBeInTheDocument();
+        });
     });
 });

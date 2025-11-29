@@ -33,12 +33,14 @@ describe('VideoContext', () => {
         localStorage.clear();
     });
 
-    it('provides initial video data', () => {
+    it('provides initial video data', async () => {
         const { result } = renderHook(() => useVideoContext(), {
             wrapper: VideoProvider,
         });
 
-        expect(result.current.videos).toHaveLength(2);
+        await waitFor(() => {
+            expect(result.current.videos).toHaveLength(2);
+        });
     });
 
     it('initializes with "All" category selected', () => {
@@ -49,12 +51,14 @@ describe('VideoContext', () => {
         expect(result.current.selectedCategory).toBe('All');
     });
 
-    it('shows all videos when "All" category is selected', () => {
+    it('shows all videos when "All" category is selected', async () => {
         const { result } = renderHook(() => useVideoContext(), {
             wrapper: VideoProvider,
         });
 
-        expect(result.current.filteredVideos).toHaveLength(2);
+        await waitFor(() => {
+            expect(result.current.filteredVideos).toHaveLength(2);
+        });
     });
 
     it('adds a tag to a video', async () => {
@@ -62,11 +66,16 @@ describe('VideoContext', () => {
             wrapper: VideoProvider,
         });
 
+        // Wait for initial data to load
+        await waitFor(() => {
+            expect(result.current.videos).toHaveLength(2);
+        });
+
         const videoId = 'test-1';
         const tagName = 'Test Tag';
 
-        act(() => {
-            result.current.addTag(videoId, tagName);
+        await act(async () => {
+            await result.current.addTag(videoId, tagName);
         });
 
         await waitFor(() => {
@@ -80,12 +89,17 @@ describe('VideoContext', () => {
             wrapper: VideoProvider,
         });
 
+        // Wait for initial data to load
+        await waitFor(() => {
+            expect(result.current.videos).toHaveLength(2);
+        });
+
         const videoId = 'test-1';
         const tagName = 'Test Tag';
 
         // Add tag
-        act(() => {
-            result.current.addTag(videoId, tagName);
+        await act(async () => {
+            await result.current.addTag(videoId, tagName);
         });
 
         await waitFor(() => {
@@ -93,8 +107,8 @@ describe('VideoContext', () => {
         });
 
         // Remove tag
-        act(() => {
-            result.current.removeTag(videoId, tagName);
+        await act(async () => {
+            await result.current.removeTag(videoId, tagName);
         });
 
         await waitFor(() => {
@@ -107,12 +121,17 @@ describe('VideoContext', () => {
             wrapper: VideoProvider,
         });
 
+        // Wait for initial data to load
+        await waitFor(() => {
+            expect(result.current.videos).toHaveLength(2);
+        });
+
         const videoId = 'test-1';
         const category = 'Tech';
 
         // Add tag to first video
-        act(() => {
-            result.current.addTag(videoId, category);
+        await act(async () => {
+            await result.current.addTag(videoId, category);
         });
 
         await waitFor(() => {
@@ -135,6 +154,11 @@ describe('VideoContext', () => {
             wrapper: VideoProvider,
         });
 
+        // Wait for initial data to load
+        await waitFor(() => {
+            expect(result.current.videos).toHaveLength(2);
+        });
+
         const tagName = 'ColorTag';
         const color = '#ff0000';
 
@@ -142,8 +166,8 @@ describe('VideoContext', () => {
         expect(result.current.getTagColor(tagName)).toBe('#2563EB');
 
         // Update color
-        act(() => {
-            result.current.updateTagColor(tagName, color);
+        await act(async () => {
+            await result.current.updateTagColor(tagName, color);
         });
 
         await waitFor(() => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import App from './App';
 import { VideoProvider } from './context/VideoContext';
 
@@ -62,27 +62,33 @@ describe('App Integration Tests', () => {
         });
     });
 
-    it('renders the full app with sidebar and video grid', () => {
+    it('renders the full app with sidebar and video grid', async () => {
         renderApp();
 
         // Sidebar should be present
         expect(screen.getByText(/watch later/i)).toBeInTheDocument();
 
         // Video grid should be present with videos
-        expect(screen.getByText('App Test Video 1')).toBeInTheDocument();
-        expect(screen.getByText('App Test Video 2')).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByText('App Test Video 1')).toBeInTheDocument();
+            expect(screen.getByText('App Test Video 2')).toBeInTheDocument();
+        });
     });
 
-    it('displays videos in grid layout', () => {
+    it('displays videos in grid layout', async () => {
         const { container } = renderApp();
 
-        const grid = container.querySelector('.grid');
-        expect(grid).toBeInTheDocument();
+        await waitFor(() => {
+            const grid = container.querySelector('.grid');
+            expect(grid).toBeInTheDocument();
+        });
     });
 
-    it('shows correct video count in sidebar', () => {
+    it('shows correct video count in sidebar', async () => {
         renderApp();
 
-        expect(screen.getByText('2 videos')).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByText('2 videos')).toBeInTheDocument();
+        });
     });
 });
