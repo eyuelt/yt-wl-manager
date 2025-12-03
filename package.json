@@ -13,7 +13,12 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.6",
     "@tanstack/react-virtual": "^3.13.12",
+    "@testing-library/dom": "^10.4.1",
+    "@textea/json-viewer": "^4.0.1",
     "lucide-react": "^0.555.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

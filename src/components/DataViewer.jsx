@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, RotateCcw } from 'lucide-react';
+import { JsonViewer } from '@textea/json-viewer';
 import dataStore from '../utils/dataStore';
 
 const DataViewer = ({ isOpen, onClose, onReset }) => {
@@ -104,12 +105,40 @@ const DataViewer = ({ isOpen, onClose, onReset }) => {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-auto p-4">
-                    <pre className="text-sm text-gray-300 font-mono bg-gray-950 p-4 rounded-lg overflow-auto">
-                        {activeTab === 'videos' && JSON.stringify(videosData, null, 2)}
-                        {activeTab === 'tags' && JSON.stringify(tagsData, null, 2)}
-                        {activeTab === 'metadata' && JSON.stringify(metadataData, null, 2)}
-                    </pre>
+                <div className="flex-1 overflow-auto p-4 bg-gray-950 rounded-lg">
+                    {activeTab === 'videos' && (
+                        <JsonViewer
+                            value={videosData}
+                            theme="dark"
+                            defaultInspectDepth={1}
+                            displayDataTypes={false}
+                            enableClipboard={true}
+                            quotesOnKeys={false}
+                            rootName="videos"
+                        />
+                    )}
+                    {activeTab === 'tags' && (
+                        <JsonViewer
+                            value={tagsData}
+                            theme="dark"
+                            defaultInspectDepth={2}
+                            displayDataTypes={false}
+                            enableClipboard={true}
+                            quotesOnKeys={false}
+                            rootName="tags"
+                        />
+                    )}
+                    {activeTab === 'metadata' && (
+                        <JsonViewer
+                            value={metadataData}
+                            theme="dark"
+                            defaultInspectDepth={2}
+                            displayDataTypes={false}
+                            enableClipboard={true}
+                            quotesOnKeys={false}
+                            rootName="tagMetadata"
+                        />
+                    )}
                 </div>
 
                 {/* Footer */}
