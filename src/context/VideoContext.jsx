@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import wlData from '../../wl.json';
 import { autoTag } from '../utils/autoTag';
 import dataStore from '../utils/dataStore';
@@ -13,6 +13,11 @@ export const VideoProvider = ({ children }) => {
     const [allTags, setAllTags] = useState(new Set());
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [tagMetadata, setTagMetadata] = useState({}); // { tagName: { color: '#hex' } }
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    // Refs to store sync operation IDs for cancellation
+    const syncIntervalRef = useRef(null);
+    const syncTimeoutRef = useRef(null);
 
     useEffect(() => {
         // Load initial data from dataStore
@@ -120,9 +125,24 @@ export const VideoProvider = ({ children }) => {
         };
     }, []);
 
+    const cancelSync = () => {
+        if (syncIntervalRef.current) {
+            clearInterval(syncIntervalRef.current);
+            syncIntervalRef.current = null;
+        }
+        if (syncTimeoutRef.current) {
+            clearTimeout(syncTimeoutRef.current);
+            syncTimeoutRef.current = null;
+        }
+        setIsSyncing(false);
+    };
+
     const syncVideos = () => {
         // IMPORTANT: Replace this with your actual extension ID from chrome://extensions/
         const EXTENSION_ID = 'aiokgdfhinicjhknkhadpppmgmbnlhap';  // TODO(eyuel)
+
+        // Set syncing state
+        setIsSyncing(true);
 
         // Open YouTube Watch Later page
         window.open(
@@ -131,7 +151,7 @@ export const VideoProvider = ({ children }) => {
         );
 
         // Poll the extension for synced data
-        const pollInterval = setInterval(() => {
+        syncIntervalRef.current = setInterval(() => {
             if (typeof chrome !== 'undefined' && chrome.runtime) {
                 chrome.runtime.sendMessage(
                     EXTENSION_ID,
@@ -170,20 +190,31 @@ export const VideoProvider = ({ children }) => {
                             await dataStore.setTags(newTags);
 
                             // Clear the interval once we've received the data
-                            clearInterval(pollInterval);
+                            clearInterval(syncIntervalRef.current);
+                            clearTimeout(syncTimeoutRef.current);
+                            syncIntervalRef.current = null;
+                            syncTimeoutRef.current = null;
+                            setIsSyncing(false);
                             alert(`Successfully synced ${newVideos.length} videos!`);
                         }
                     }
                 );
             } else {
                 console.warn('Chrome extension API not available.');
-                clearInterval(pollInterval);
+                clearInterval(syncIntervalRef.current);
+                clearTimeout(syncTimeoutRef.current);
+                syncIntervalRef.current = null;
+                syncTimeoutRef.current = null;
+                setIsSyncing(false);
             }
         }, 1000); // Poll every second
 
         // Stop polling after 30 seconds
-        setTimeout(() => {
-            clearInterval(pollInterval);
+        syncTimeoutRef.current = setTimeout(() => {
+            clearInterval(syncIntervalRef.current);
+            syncIntervalRef.current = null;
+            syncTimeoutRef.current = null;
+            setIsSyncing(false);
         }, 30000);
     };
 
@@ -279,7 +310,9 @@ export const VideoProvider = ({ children }) => {
             updateTagColor,
             getTagColor,
             syncVideos,
-            resetToWlJson
+            cancelSync,
+            resetToWlJson,
+            isSyncing
         }}>
             {children}
         </VideoContext.Provider>

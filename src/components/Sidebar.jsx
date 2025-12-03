@@ -4,7 +4,7 @@ import { Tag, Hash, Database } from 'lucide-react';
 import DataViewer from './DataViewer';
 
 const Sidebar = () => {
-    const { allTags, selectedCategory, setSelectedCategory, videos, updateTagColor, getTagColor, syncVideos, resetToWlJson } = useVideoContext();
+    const { allTags, selectedCategory, setSelectedCategory, videos, updateTagColor, getTagColor, syncVideos, cancelSync, resetToWlJson, isSyncing } = useVideoContext();
     const [isDataViewerOpen, setIsDataViewerOpen] = useState(false);
 
     const categories = ['All', 'Uncategorized', ...allTags.sort()];
@@ -66,10 +66,15 @@ const Sidebar = () => {
 
             <div className="p-4 border-t border-gray-800 space-y-2">
                 <button
-                    onClick={syncVideos}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
+                    onClick={isSyncing ? cancelSync : syncVideos}
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium ${
+                        isSyncing
+                            ? 'bg-orange-600 hover:bg-orange-700'
+                            : 'bg-red-600 hover:bg-red-700'
+                    } text-white`}
                 >
-                    <span className="text-lg">↻</span> Sync with YouTube
+                    <span className={`text-lg ${isSyncing ? 'animate-spin' : ''}`}>↻</span>
+                    {isSyncing ? 'Cancel sync' : 'Sync with YouTube'}
                 </button>
                 <button
                     onClick={() => setIsDataViewerOpen(true)}
