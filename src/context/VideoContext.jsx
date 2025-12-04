@@ -15,6 +15,7 @@ export const VideoProvider = ({ children }) => {
     const [tagMetadata, setTagMetadata] = useState({}); // { tagName: { color: '#hex' } }
     const [isSyncing, setIsSyncing] = useState(false);
     const [showArchived, setShowArchived] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Refs to store sync operation IDs for cancellation
     const syncIntervalRef = useRef(null);
@@ -351,20 +352,32 @@ export const VideoProvider = ({ children }) => {
     const filteredVideos = videos.filter(video => {
         // Handle "Archived" category
         if (selectedCategory === 'Archived') {
-            return video.archived === true;
+            if (video.archived !== true) return false;
+        } else {
+            // For all other categories, exclude archived videos unless showArchived is true
+            if (video.archived && !showArchived) {
+                return false;
+            }
+
+            // Apply category filter
+            if (selectedCategory === 'All') {
+                // Continue to search filter
+            } else if (selectedCategory === 'Uncategorized') {
+                if (tags[video.id] && tags[video.id].length > 0) return false;
+            } else {
+                if (!tags[video.id]?.includes(selectedCategory)) return false;
+            }
         }
 
-        // For all other categories, exclude archived videos unless showArchived is true
-        if (video.archived && !showArchived) {
-            return false;
+        // Apply search filter
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            const titleMatch = video.title?.toLowerCase().includes(query);
+            const channelMatch = video.channel?.toLowerCase().includes(query);
+            return titleMatch || channelMatch;
         }
 
-        // Apply category filter
-        if (selectedCategory === 'All') return true;
-        if (selectedCategory === 'Uncategorized') {
-            return !tags[video.id] || tags[video.id].length === 0;
-        }
-        return tags[video.id]?.includes(selectedCategory);
+        return true;
     });
 
     return (
@@ -385,7 +398,9 @@ export const VideoProvider = ({ children }) => {
             resetToWlJson,
             isSyncing,
             showArchived,
-            setShowArchived
+            setShowArchived,
+            searchQuery,
+            setSearchQuery
         }}>
             {children}
         </VideoContext.Provider>

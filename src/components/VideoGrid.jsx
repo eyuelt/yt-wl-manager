@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useVideoContext } from '../context/VideoContext';
 import VideoCard from './VideoCard';
+import SearchBar from './SearchBar';
 
 const VideoGrid = () => {
     const { filteredVideos } = useVideoContext();
@@ -59,16 +60,20 @@ const VideoGrid = () => {
         rowVirtualizer.measure();
     }, [columnCount, rowVirtualizer]);
 
-    if (filteredVideos.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                <p className="text-xl">No videos found in this category.</p>
-            </div>
-        );
-    }
-
     return (
-        <div ref={setParentRef} className="h-screen overflow-auto p-6">
+        <div className="h-screen flex flex-col">
+            {/* Search Bar Header */}
+            <div className="flex-none p-6 pb-4 border-b border-gray-800">
+                <SearchBar />
+            </div>
+
+            {/* Video Grid */}
+            {filteredVideos.length === 0 ? (
+                <div className="flex flex-col items-center justify-center flex-1 text-gray-400">
+                    <p className="text-xl">No videos found.</p>
+                </div>
+            ) : (
+                <div ref={setParentRef} className="flex-1 overflow-auto p-6">
             <div
                 style={{
                     height: `${rowVirtualizer.getTotalSize()}px`,
@@ -105,6 +110,8 @@ const VideoGrid = () => {
                     );
                 })}
             </div>
+                </div>
+            )}
         </div>
     );
 };
