@@ -70,8 +70,13 @@
         console.log('Extracted videos in page context:', videos.length);
 
         // Send data back to content script via custom event
+        // TODO: When pagination is re-implemented, set syncComplete to true only after all pages are fetched
+        // For now, treating first page as complete sync
         window.dispatchEvent(new CustomEvent('YT_WL_EXTRACT_RESPONSE', {
-            detail: { videos: videos }
+            detail: {
+                videos: videos,
+                syncComplete: true
+            }
         }));
     });
 

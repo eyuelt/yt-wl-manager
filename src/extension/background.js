@@ -10,9 +10,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // Store the synced videos
         chrome.storage.local.set({
             ytWatchLaterVideos: message.videos,
+            ytWatchLaterSyncComplete: message.syncComplete || false,
             ytWatchLaterTimestamp: Date.now()
         }, () => {
-            console.log('Stored videos in background:', message.videos.length);
+            console.log('Stored videos in background:', message.videos.length, 'syncComplete:', message.syncComplete);
             sendResponse({ success: true });
         });
         return true; // Keep the message channel open for async response
@@ -25,17 +26,18 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
 
     if (message.type === 'GET_YT_WL_DATA') {
         // Retrieve and send the stored videos
-        chrome.storage.local.get(['ytWatchLaterVideos', 'ytWatchLaterTimestamp'], (result) => {
+        chrome.storage.local.get(['ytWatchLaterVideos', 'ytWatchLaterSyncComplete', 'ytWatchLaterTimestamp'], (result) => {
             if (result.ytWatchLaterVideos) {
                 console.log('Sending videos to app:', result.ytWatchLaterVideos.length);
                 sendResponse({
                     success: true,
                     videos: result.ytWatchLaterVideos,
+                    syncComplete: result.ytWatchLaterSyncComplete || false,
                     timestamp: result.ytWatchLaterTimestamp
                 });
 
                 // Clear the storage after sending
-                chrome.storage.local.remove(['ytWatchLaterVideos', 'ytWatchLaterTimestamp']);
+                chrome.storage.local.remove(['ytWatchLaterVideos', 'ytWatchLaterSyncComplete', 'ytWatchLaterTimestamp']);
             } else {
                 sendResponse({ success: false, message: 'No data available' });
             }

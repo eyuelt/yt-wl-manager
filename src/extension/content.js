@@ -75,15 +75,16 @@ function main() {
             window.addEventListener('YT_WL_EXTRACT_RESPONSE', function(event) {
                 console.log('Received YT_WL_EXTRACT_RESPONSE event');
                 const videos = event.detail.videos;
-                console.log(`Received ${videos.length} videos from page script`);
+                const syncComplete = event.detail.syncComplete || false;
+                console.log(`Received ${videos.length} videos from page script (syncComplete: ${syncComplete})`);
 
                 if (videos.length === 0) {
                     // Fallback to DOM extraction
                     const domVideos = extractVideosFromDOM();
                     console.log(`DOM extraction found ${domVideos.length} videos.`);
-                    sendToBackground(domVideos.length > 0 ? domVideos : videos);
+                    sendToBackground(domVideos.length > 0 ? domVideos : videos, syncComplete);
                 } else {
-                    sendToBackground(videos);
+                    sendToBackground(videos, syncComplete);
                 }
             }, { once: true });
 
@@ -96,10 +97,11 @@ function main() {
     }
 }
 
-function sendToBackground(videos) {
+function sendToBackground(videos, syncComplete) {
     chrome.runtime.sendMessage({
         type: 'YT_WL_SYNC',
-        videos: videos
+        videos: videos,
+        syncComplete: syncComplete
     }, (response) => {
         if (chrome.runtime.lastError) {
             console.error('Error sending to background:', chrome.runtime.lastError);

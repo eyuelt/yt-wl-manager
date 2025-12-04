@@ -14,10 +14,71 @@ export const VideoProvider = ({ children }) => {
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [tagMetadata, setTagMetadata] = useState({}); // { tagName: { color: '#hex' } }
     const [isSyncing, setIsSyncing] = useState(false);
+    const [showArchived, setShowArchived] = useState(false);
 
     // Refs to store sync operation IDs for cancellation
     const syncIntervalRef = useRef(null);
     const syncTimeoutRef = useRef(null);
+
+    // Helper function to perform delta sync
+    const performDeltaSync = async (existingVideos, existingTags, newVideos, syncComplete) => {
+        const now = Date.now();
+        const newVideosMap = new Map(newVideos.map(v => [v.id, v]));
+        const updatedVideos = [];
+        const updatedTags = { ...existingTags };
+        const newAllTags = new Set();
+
+        // Process existing videos
+        for (const video of existingVideos) {
+            if (newVideosMap.has(video.id)) {
+                // Video still exists - update metadata but preserve tags and archived status
+                const newVideoData = newVideosMap.get(video.id);
+                updatedVideos.push({
+                    ...newVideoData,
+                    archived: false, // Un-archive if it was archived
+                    archivedAt: null,
+                    lastSeenAt: now,
+                    // Preserve any additional fields from existing video
+                    addedAt: video.addedAt
+                });
+                newVideosMap.delete(video.id); // Mark as processed
+            } else if (syncComplete && !video.archived) {
+                // Video not in sync AND sync is complete AND not already archived - archive it
+                updatedVideos.push({
+                    ...video,
+                    archived: true,
+                    archivedAt: now
+                });
+            } else {
+                // Keep video as-is (either sync incomplete or already archived)
+                updatedVideos.push(video);
+            }
+
+            // Keep existing tags
+            if (updatedTags[video.id]) {
+                updatedTags[video.id].forEach(tag => newAllTags.add(tag));
+            }
+        }
+
+        // Process truly new videos (not in existing videos)
+        for (const [videoId, newVideo] of newVideosMap) {
+            updatedVideos.push({
+                ...newVideo,
+                archived: false,
+                lastSeenAt: now,
+                addedAt: newVideo.addedAt || now
+            });
+
+            // Auto-tag new videos
+            const autoTags = autoTag(newVideo);
+            if (autoTags.length > 0) {
+                updatedTags[videoId] = autoTags;
+                autoTags.forEach(tag => newAllTags.add(tag));
+            }
+        }
+
+        return { updatedVideos, updatedTags, newAllTags };
+    };
 
     useEffect(() => {
         // Load initial data from dataStore
@@ -29,6 +90,15 @@ export const VideoProvider = ({ children }) => {
                 initialVideos = wlData.entries || [];
                 await dataStore.setVideos(initialVideos);
             }
+
+            // Ensure all videos have the new fields (migration for existing data)
+            const now = Date.now();
+            initialVideos = initialVideos.map(video => ({
+                ...video,
+                archived: video.archived ?? false,
+                lastSeenAt: video.lastSeenAt ?? now,
+                archivedAt: video.archivedAt ?? null
+            }));
 
             setVideos(initialVideos);
 
@@ -72,32 +142,26 @@ export const VideoProvider = ({ children }) => {
         // Message listener for sync
         const handleMessage = async (event) => {
             if (event.data && event.data.type === 'YT_WL_SYNC') {
-                console.log('Received synced videos:', event.data.videos);
                 const newVideos = event.data.videos;
-                setVideos(newVideos);
-                await dataStore.setVideos(newVideos);
+                const syncComplete = event.data.syncComplete || false;
+                console.log('Received synced videos:', newVideos.length, 'syncComplete:', syncComplete);
 
-                // Re-run auto-tagging for new videos
-                const initialTags = {};
-                const newAllTags = new Set();
+                // Perform delta sync
+                const { updatedVideos, updatedTags, newAllTags } = await performDeltaSync(
+                    videos,
+                    tags,
+                    newVideos,
+                    syncComplete
+                );
 
-                newVideos.forEach(video => {
-                    // Keep existing tags if any
-                    if (tags[video.id]) {
-                        initialTags[video.id] = tags[video.id];
-                        tags[video.id].forEach(tag => newAllTags.add(tag));
-                    } else {
-                        const newTags = autoTag(video);
-                        if (newTags.length > 0) {
-                            initialTags[video.id] = newTags;
-                            newTags.forEach(tag => newAllTags.add(tag));
-                        }
-                    }
-                });
-
-                setTags(initialTags);
+                // Update state and storage
+                setVideos(updatedVideos);
+                setTags(updatedTags);
                 setAllTags(newAllTags);
-                await dataStore.setTags(initialTags);
+                await dataStore.setVideos(updatedVideos);
+                await dataStore.setTags(updatedTags);
+
+                console.log(`Sync complete: ${updatedVideos.length} total videos (${updatedVideos.filter(v => v.archived).length} archived)`);
             }
         };
 
@@ -163,31 +227,27 @@ export const VideoProvider = ({ children }) => {
                         }
 
                         if (response && response.success && response.videos) {
-                            console.log('Received synced videos from extension:', response.videos);
                             const newVideos = response.videos;
-                            setVideos(newVideos);
-                            await dataStore.setVideos(newVideos);
+                            const syncComplete = response.syncComplete || false;
+                            console.log('Received synced videos from extension:', newVideos.length, 'syncComplete:', syncComplete);
 
-                            // Re-run auto-tagging
-                            const newTags = {};
-                            const newAllTags = new Set();
+                            // Perform delta sync
+                            const { updatedVideos, updatedTags, newAllTags } = await performDeltaSync(
+                                videos,
+                                tags,
+                                newVideos,
+                                syncComplete
+                            );
 
-                            newVideos.forEach(video => {
-                                if (tags[video.id]) {
-                                    newTags[video.id] = tags[video.id];
-                                    tags[video.id].forEach(tag => newAllTags.add(tag));
-                                } else {
-                                    const autoTags = autoTag(video);
-                                    if (autoTags.length > 0) {
-                                        newTags[video.id] = autoTags;
-                                        autoTags.forEach(tag => newAllTags.add(tag));
-                                    }
-                                }
-                            });
-
-                            setTags(newTags);
+                            // Update state and storage
+                            setVideos(updatedVideos);
+                            setTags(updatedTags);
                             setAllTags(newAllTags);
-                            await dataStore.setTags(newTags);
+                            await dataStore.setVideos(updatedVideos);
+                            await dataStore.setTags(updatedTags);
+
+                            const archivedCount = updatedVideos.filter(v => v.archived).length;
+                            console.log(`Sync complete: ${updatedVideos.length} total videos (${archivedCount} archived)`);
 
                             // Clear the interval once we've received the data
                             clearInterval(syncIntervalRef.current);
@@ -195,7 +255,7 @@ export const VideoProvider = ({ children }) => {
                             syncIntervalRef.current = null;
                             syncTimeoutRef.current = null;
                             setIsSyncing(false);
-                            alert(`Successfully synced ${newVideos.length} videos!`);
+                            alert(`Successfully synced ${newVideos.length} videos from YouTube! Total: ${updatedVideos.length} (${archivedCount} archived)`);
                         }
                     }
                 );
@@ -289,6 +349,17 @@ export const VideoProvider = ({ children }) => {
     };
 
     const filteredVideos = videos.filter(video => {
+        // Handle "Archived" category
+        if (selectedCategory === 'Archived') {
+            return video.archived === true;
+        }
+
+        // For all other categories, exclude archived videos unless showArchived is true
+        if (video.archived && !showArchived) {
+            return false;
+        }
+
+        // Apply category filter
         if (selectedCategory === 'All') return true;
         if (selectedCategory === 'Uncategorized') {
             return !tags[video.id] || tags[video.id].length === 0;
@@ -312,7 +383,9 @@ export const VideoProvider = ({ children }) => {
             syncVideos,
             cancelSync,
             resetToWlJson,
-            isSyncing
+            isSyncing,
+            showArchived,
+            setShowArchived
         }}>
             {children}
         </VideoContext.Provider>

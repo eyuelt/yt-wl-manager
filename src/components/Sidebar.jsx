@@ -4,10 +4,14 @@ import { Tag, Hash, Database } from 'lucide-react';
 import DataViewer from './DataViewer';
 
 const Sidebar = () => {
-    const { allTags, selectedCategory, setSelectedCategory, videos, updateTagColor, getTagColor, syncVideos, cancelSync, resetToWlJson, isSyncing } = useVideoContext();
+    const { allTags, selectedCategory, setSelectedCategory, videos, updateTagColor, getTagColor, syncVideos, cancelSync, resetToWlJson, isSyncing, showArchived, setShowArchived } = useVideoContext();
     const [isDataViewerOpen, setIsDataViewerOpen] = useState(false);
 
-    const categories = ['All', 'Uncategorized', ...allTags.sort()];
+    const archivedCount = videos.filter(v => v.archived).length;
+    const unarchivedCount = videos.filter(v => !v.archived).length;
+    const categories = showArchived
+        ? ['All', 'Uncategorized', ...allTags.sort(), 'Archived']
+        : ['All', 'Uncategorized', ...allTags.sort()];
 
     return (
         <div className="w-64 bg-gray-900 h-screen fixed left-0 top-0 overflow-y-auto border-r border-gray-800 flex flex-col">
@@ -15,13 +19,14 @@ const Sidebar = () => {
                 <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
                     <span className="text-red-600">▶</span> Watch Later
                 </h1>
-                <p className="text-gray-400 text-sm">{videos.length} videos</p>
+                <p className="text-gray-400 text-sm">{unarchivedCount} videos</p>
             </div>
 
             <nav className="flex-1 px-4 pb-4">
                 <div className="space-y-1">
                     {categories.map(category => {
-                        const isSystemCategory = category === 'All' || category === 'Uncategorized';
+                        const isSystemCategory = category === 'All' || category === 'Uncategorized' || category === 'Archived';
+                        const isArchivedCategory = category === 'Archived';
                         const tagColor = !isSystemCategory ? getTagColor(category) : null;
 
                         return (
@@ -38,7 +43,10 @@ const Sidebar = () => {
                                     ) : (
                                         <Tag size={18} style={{ color: selectedCategory === category ? 'white' : tagColor }} />
                                     )}
-                                    <span className="truncate flex-1">{category}</span>
+                                    <span className="truncate flex-1">
+                                        {category}
+                                        {isArchivedCategory && ` (${archivedCount})`}
+                                    </span>
                                 </button>
 
                                 {!isSystemCategory && (
@@ -83,6 +91,15 @@ const Sidebar = () => {
                     <Database size={18} />
                     View Data
                 </button>
+                <label className="flex items-center gap-2 px-4 py-2 text-gray-400 hover:text-white cursor-pointer transition-colors">
+                    <input
+                        type="checkbox"
+                        checked={showArchived}
+                        onChange={(e) => setShowArchived(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-red-600 focus:ring-red-500 focus:ring-offset-gray-900"
+                    />
+                    <span className="text-sm">Show Archived ({archivedCount})</span>
+                </label>
             </div>
 
             <DataViewer
