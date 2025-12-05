@@ -4,7 +4,7 @@ import { Tag, Hash, Database } from 'lucide-react';
 import DataViewer from './DataViewer';
 
 const Sidebar = () => {
-    const { allTags, selectedCategory, setSelectedCategory, videos, updateTagColor, getTagColor, syncVideos, cancelSync, resetToWlJson, isSyncing, showArchived, setShowArchived } = useVideoContext();
+    const { allTags, selectedCategory, setSelectedCategory, videos, tags, updateTagColor, getTagColor, resetToWlJson, showArchived, setShowArchived } = useVideoContext();
     const [isDataViewerOpen, setIsDataViewerOpen] = useState(false);
 
     const archivedCount = videos.filter(v => v.archived).length;
@@ -12,6 +12,20 @@ const Sidebar = () => {
     const categories = showArchived
         ? ['All', 'Uncategorized', ...allTags.sort(), 'Archived']
         : ['All', 'Uncategorized', ...allTags.sort()];
+
+    // Calculate counts for each category
+    const getCategoryCount = (category) => {
+        if (category === 'All') return unarchivedCount;
+        if (category === 'Archived') return archivedCount;
+        if (category === 'Uncategorized') {
+            return videos.filter(v => !v.archived && (!tags[v.id] || tags[v.id].length === 0)).length;
+        }
+        // For tag categories, count videos with that tag (excluding archived)
+        return videos.filter(v => !v.archived && tags[v.id]?.includes(category)).length;
+    };
+
+    // Find max count for bar width calculation
+    const maxCount = Math.max(...categories.map(cat => getCategoryCount(cat)), 1);
 
     return (
         <div className="w-64 bg-gray-900 h-screen fixed left-0 top-0 overflow-y-auto border-r border-gray-800 flex flex-col">
@@ -26,8 +40,9 @@ const Sidebar = () => {
                 <div className="space-y-1">
                     {categories.map(category => {
                         const isSystemCategory = category === 'All' || category === 'Uncategorized' || category === 'Archived';
-                        const isArchivedCategory = category === 'Archived';
                         const tagColor = !isSystemCategory ? getTagColor(category) : null;
+                        const count = getCategoryCount(category);
+                        const barWidth = (count / maxCount) * 100;
 
                         return (
                             <div key={category} className="group relative flex items-center">
@@ -38,15 +53,20 @@ const Sidebar = () => {
                                         : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                                         }`}
                                 >
-                                    {isSystemCategory ? (
-                                        <Hash size={18} />
-                                    ) : (
-                                        <Tag size={18} style={{ color: selectedCategory === category ? 'white' : tagColor }} />
-                                    )}
-                                    <span className="truncate flex-1">
-                                        {category}
-                                        {isArchivedCategory && ` (${archivedCount})`}
-                                    </span>
+                                    {/* Content */}
+                                    <div className="relative flex items-center gap-3 flex-1 min-w-0">
+                                        {isSystemCategory ? (
+                                            <Hash size={18} className="flex-shrink-0" />
+                                        ) : (
+                                            <Tag size={18} className="flex-shrink-0" style={{ color: selectedCategory === category ? 'white' : tagColor }} />
+                                        )}
+                                        <span className="truncate flex-1">
+                                            {category}
+                                        </span>
+                                        <span className="text-xs opacity-70 flex-shrink-0">
+                                            {count}
+                                        </span>
+                                    </div>
                                 </button>
 
                                 {!isSystemCategory && (
@@ -74,31 +94,23 @@ const Sidebar = () => {
 
             <div className="p-4 border-t border-gray-800 space-y-2">
                 <button
-                    onClick={isSyncing ? cancelSync : syncVideos}
-                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium ${
-                        isSyncing
-                            ? 'bg-orange-600 hover:bg-orange-700'
-                            : 'bg-red-600 hover:bg-red-700'
-                    } text-white`}
-                >
-                    <span className={`text-lg ${isSyncing ? 'animate-spin' : ''}`}>↻</span>
-                    {isSyncing ? 'Cancel sync' : 'Sync with YouTube'}
-                </button>
-                <button
                     onClick={() => setIsDataViewerOpen(true)}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors font-medium"
                 >
                     <Database size={18} />
                     View Data
                 </button>
-                <label className="flex items-center gap-2 px-4 py-2 text-gray-400 hover:text-white cursor-pointer transition-colors">
-                    <input
-                        type="checkbox"
-                        checked={showArchived}
-                        onChange={(e) => setShowArchived(e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-red-600 focus:ring-red-500 focus:ring-offset-gray-900"
-                    />
-                    <span className="text-sm">Show Archived ({archivedCount})</span>
+                <label className="flex items-center justify-between px-4 py-2.5 text-gray-300 hover:bg-gray-800 rounded-lg cursor-pointer transition-colors group">
+                    <span className="text-sm font-medium">Show Archived</span>
+                    <div className="relative">
+                        <input
+                            type="checkbox"
+                            checked={showArchived}
+                            onChange={(e) => setShowArchived(e.target.checked)}
+                            className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-red-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                    </div>
                 </label>
             </div>
 
