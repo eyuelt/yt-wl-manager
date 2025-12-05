@@ -1,13 +1,39 @@
 import React, { useState } from 'react';
 import { useVideoContext } from '../context/VideoContext';
-import { Plus, X, ExternalLink } from 'lucide-react';
+import { Plus, X, ExternalLink, Check } from 'lucide-react';
 
-const VideoCard = ({ video }) => {
-    const { tags, addTag, removeTag, getTagColor } = useVideoContext();
+const VideoCard = ({ video, index }) => {
+    const { tags, addTag, removeTag, getTagColor, selectionMode, selectedVideos, toggleVideoSelection, toggleSelectionMode } = useVideoContext();
     const [isAddingTag, setIsAddingTag] = useState(false);
     const [newTag, setNewTag] = useState('');
 
     const videoTags = tags[video.id] || [];
+    const isSelected = selectedVideos.has(video.id);
+
+    const handleCardClick = (e) => {
+        if (selectionMode) {
+            e.preventDefault();
+            toggleVideoSelection(video.id, index, e.shiftKey);
+        } else {
+            // Not in selection mode - enter selection mode and select this video
+            e.preventDefault();
+            toggleSelectionMode();
+            // Need to select after mode is toggled, using setTimeout to allow state update
+            setTimeout(() => {
+                toggleVideoSelection(video.id, index, false);
+            }, 0);
+        }
+    };
+
+    const handleThumbnailClick = (e) => {
+        if (selectionMode) {
+            // In selection mode, thumbnail click should select
+            e.preventDefault();
+        } else {
+            // Not in selection mode, let the link work normally
+            e.stopPropagation(); // Prevent card click handler
+        }
+    };
 
     const handleAddTag = (e) => {
         e.preventDefault();
@@ -33,24 +59,50 @@ const VideoCard = ({ video }) => {
     const thumbnail = video.thumbnails ? video.thumbnails[video.thumbnails.length - 1].url : '';
 
     return (
-        <div className="bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
+        <div
+            className={`bg-gray-800 rounded-lg overflow-hidden shadow-lg transition-all duration-300 flex flex-col ${
+                selectionMode ? 'cursor-pointer select-none' : ''
+            } ${
+                isSelected ? 'ring-4 ring-red-600' : 'hover:shadow-xl'
+            }`}
+            onClick={handleCardClick}
+        >
             <div className="relative group">
-                <a href={video.url} target="_blank" rel="noopener noreferrer" className="block">
+                {selectionMode && (
+                    <div className="absolute top-2 left-2 z-10">
+                        <div className={`w-6 h-6 rounded flex items-center justify-center border-2 transition-all ${
+                            isSelected
+                                ? 'bg-red-600 border-red-600'
+                                : 'bg-gray-900/80 border-gray-400'
+                        }`}>
+                            {isSelected && <Check size={16} className="text-white" />}
+                        </div>
+                    </div>
+                )}
+                <a
+                    href={video.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                    onClick={handleThumbnailClick}
+                >
                     <img src={thumbnail} alt={video.title} className="w-full aspect-video object-cover" />
                     <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
                         {formatDuration(video.duration)}
                     </div>
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                        <ExternalLink className="text-white w-8 h-8 drop-shadow-lg" />
-                    </div>
+                    {!selectionMode && (
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <ExternalLink className="text-white w-8 h-8 drop-shadow-lg" />
+                        </div>
+                    )}
                 </a>
             </div>
 
             <div className="p-4 flex-1 flex flex-col">
-                <h3 className="text-white font-semibold text-lg leading-tight mb-2 line-clamp-2" title={video.title}>
+                <h3 className="text-white font-semibold text-lg leading-tight mb-2 line-clamp-2 select-text" title={video.title}>
                     {video.title}
                 </h3>
-                <p className="text-gray-400 text-sm mb-4">{video.channel}</p>
+                <p className="text-gray-400 text-sm mb-4 select-text">{video.channel}</p>
 
                 <div className="mt-auto">
                     <div className="flex flex-wrap gap-2 mb-3">
@@ -61,17 +113,30 @@ const VideoCard = ({ video }) => {
                                 style={{ backgroundColor: getTagColor(tag) }}
                             >
                                 {tag}
-                                <button onClick={() => removeTag(video.id, tag)} className="hover:text-white/80">
-                                    <X size={12} />
-                                </button>
+                                {!selectionMode && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            removeTag(video.id, tag);
+                                        }}
+                                        className="hover:text-white/80"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                )}
                             </span>
                         ))}
-                        <button
-                            onClick={() => setIsAddingTag(!isAddingTag)}
-                            className="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full hover:bg-gray-600 flex items-center"
-                        >
-                            <Plus size={12} />
-                        </button>
+                        {!selectionMode && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsAddingTag(!isAddingTag);
+                                }}
+                                className="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full hover:bg-gray-600 flex items-center"
+                            >
+                                <Plus size={12} />
+                            </button>
+                        )}
                     </div>
 
                     {isAddingTag && (

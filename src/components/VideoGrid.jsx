@@ -97,14 +97,17 @@ const VideoGrid = () => {
                             }}
                         >
                             <div
-                                className="grid gap-6"
+                                className="grid gap-6 select-none"
                                 style={{
                                     gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
                                 }}
                             >
-                                {rowVideos.map((video) => (
-                                    <VideoCard key={video.id} video={video} />
-                                ))}
+                                {rowVideos.map((video, colIndex) => {
+                                    const videoIndex = startIndex + colIndex;
+                                    return (
+                                        <VideoCard key={video.id} video={video} index={videoIndex} />
+                                    );
+                                })}
                             </div>
                         </div>
                     );

@@ -1,17 +1,17 @@
 import React from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, CheckSquare } from 'lucide-react';
 import { useVideoContext } from '../context/VideoContext';
 
 const SearchBar = () => {
-    const { searchQuery, setSearchQuery } = useVideoContext();
+    const { searchQuery, setSearchQuery, selectionMode, toggleSelectionMode } = useVideoContext();
 
     const handleClear = () => {
         setSearchQuery('');
     };
 
     return (
-        <div className="relative w-full max-w-2xl">
-            <div className="relative">
+        <div className="flex gap-3 w-full items-center">
+            <div className="relative flex-1 max-w-2xl">
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                 <input
                     type="text"
@@ -30,6 +30,17 @@ const SearchBar = () => {
                     </button>
                 )}
             </div>
+            <button
+                onClick={toggleSelectionMode}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
+                    selectionMode
+                        ? 'bg-red-600 text-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700'
+                }`}
+            >
+                <CheckSquare size={20} />
+                {selectionMode ? 'Cancel' : 'Select'}
+            </button>
         </div>
     );
 };

@@ -16,6 +16,9 @@ export const VideoProvider = ({ children }) => {
     const [isSyncing, setIsSyncing] = useState(false);
     const [showArchived, setShowArchived] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectionMode, setSelectionMode] = useState(false);
+    const [selectedVideos, setSelectedVideos] = useState(new Set());
+    const [lastSelectedIndex, setLastSelectedIndex] = useState(null);
 
     // Refs to store sync operation IDs for cancellation
     const syncIntervalRef = useRef(null);
@@ -350,6 +353,99 @@ export const VideoProvider = ({ children }) => {
         alert('Data reset to wl.json successfully!');
     };
 
+    // Selection functions
+    const toggleSelectionMode = () => {
+        setSelectionMode(!selectionMode);
+        setSelectedVideos(new Set());
+        setLastSelectedIndex(null);
+    };
+
+    const toggleVideoSelection = (videoId, index, shiftKey = false) => {
+        const newSelected = new Set(selectedVideos);
+
+        if (shiftKey && lastSelectedIndex !== null && index !== lastSelectedIndex) {
+            // Shift-click: select or deselect range based on clicked video's current state
+            const start = Math.min(lastSelectedIndex, index);
+            const end = Math.max(lastSelectedIndex, index);
+            const shouldSelect = !newSelected.has(videoId); // If clicked video is not selected, select range; otherwise deselect
+
+            for (let i = start; i <= end; i++) {
+                if (filteredVideos[i]) {
+                    if (shouldSelect) {
+                        newSelected.add(filteredVideos[i].id);
+                    } else {
+                        newSelected.delete(filteredVideos[i].id);
+                    }
+                }
+            }
+        } else {
+            // Normal click: toggle single video
+            if (newSelected.has(videoId)) {
+                newSelected.delete(videoId);
+            } else {
+                newSelected.add(videoId);
+            }
+        }
+
+        setSelectedVideos(newSelected);
+        setLastSelectedIndex(index);
+    };
+
+    const clearSelection = () => {
+        setSelectedVideos(new Set());
+        setLastSelectedIndex(null);
+    };
+
+    const archiveSelected = async () => {
+        if (selectedVideos.size === 0) return;
+
+        if (!window.confirm(`Archive ${selectedVideos.size} selected videos?`)) {
+            return;
+        }
+
+        const now = Date.now();
+        const updatedVideos = videos.map(video => {
+            if (selectedVideos.has(video.id)) {
+                return {
+                    ...video,
+                    archived: true,
+                    archivedAt: now
+                };
+            }
+            return video;
+        });
+
+        setVideos(updatedVideos);
+        await dataStore.setVideos(updatedVideos);
+        clearSelection();
+        setSelectionMode(false);
+        alert(`${selectedVideos.size} videos archived successfully!`);
+    };
+
+    const deleteSelected = async () => {
+        if (selectedVideos.size === 0) return;
+
+        if (!window.confirm(`Permanently delete ${selectedVideos.size} selected videos? This cannot be undone.`)) {
+            return;
+        }
+
+        const updatedVideos = videos.filter(video => !selectedVideos.has(video.id));
+        const updatedTags = { ...tags };
+
+        // Remove tags for deleted videos
+        selectedVideos.forEach(videoId => {
+            delete updatedTags[videoId];
+        });
+
+        setVideos(updatedVideos);
+        setTags(updatedTags);
+        await dataStore.setVideos(updatedVideos);
+        await dataStore.setTags(updatedTags);
+        clearSelection();
+        setSelectionMode(false);
+        alert(`${selectedVideos.size} videos deleted successfully!`);
+    };
+
     const filteredVideos = videos.filter(video => {
         // Handle "Archived" category
         if (selectedCategory === 'Archived') {
@@ -407,7 +503,14 @@ export const VideoProvider = ({ children }) => {
             showArchived,
             setShowArchived,
             searchQuery,
-            setSearchQuery
+            setSearchQuery,
+            selectionMode,
+            toggleSelectionMode,
+            selectedVideos,
+            toggleVideoSelection,
+            clearSelection,
+            archiveSelected,
+            deleteSelected
         }}>
             {children}
         </VideoContext.Provider>

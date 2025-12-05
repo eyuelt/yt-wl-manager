@@ -1,6 +1,7 @@
 import React from 'react';
 import Sidebar from './components/Sidebar';
 import VideoGrid from './components/VideoGrid';
+import BulkActionsBar from './components/BulkActionsBar';
 
 function App() {
   return (
@@ -9,6 +10,7 @@ function App() {
       <main className="flex-1 ml-64">
         <VideoGrid />
       </main>
+      <BulkActionsBar />
     </div>
   );
 }
