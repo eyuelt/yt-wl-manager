@@ -270,13 +270,14 @@ export const VideoProvider = ({ children }) => {
             }
         }, 1000); // Poll every second
 
-        // Stop polling after 30 seconds
+        // Stop polling after 3 minutes (enough time for large syncs with pagination)
         syncTimeoutRef.current = setTimeout(() => {
             clearInterval(syncIntervalRef.current);
             syncIntervalRef.current = null;
             syncTimeoutRef.current = null;
             setIsSyncing(false);
-        }, 30000);
+            alert('Sync timed out after 3 minutes. Please try again.');
+        }, 180000);
     };
 
     const addTag = async (videoId, tag) => {
@@ -378,6 +379,12 @@ export const VideoProvider = ({ children }) => {
         }
 
         return true;
+    }).sort((a, b) => {
+        // Sort by most recently imported (newest first)
+        // Use addedAt timestamp (set when video is first imported)
+        const aTime = a.addedAt || 0;
+        const bTime = b.addedAt || 0;
+        return bTime - aTime; // Descending order (newest first)
     });
 
     return (

@@ -71,6 +71,68 @@ function main() {
         setTimeout(() => {
             console.log('Requesting video extraction from page script...');
 
+            // Create progress indicator
+            const progressDiv = document.createElement('div');
+            progressDiv.id = 'yt-wl-sync-progress';
+            progressDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #0f0f0f;
+                color: white;
+                padding: 16px 24px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+                z-index: 10000;
+                font-family: 'Roboto', Arial, sans-serif;
+                font-size: 14px;
+                min-width: 250px;
+                border: 1px solid #3ea6ff;
+            `;
+            progressDiv.innerHTML = `
+                <div style="font-weight: 500; margin-bottom: 8px;">Syncing Watch Later...</div>
+                <div id="yt-wl-progress-text" style="color: #aaa; margin-bottom: 12px;">Starting extraction...</div>
+                <button id="yt-wl-cancel-btn" style="
+                    background: #cc0000;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 12px;
+                    font-weight: 500;
+                    width: 100%;
+                ">Stop and Sync Now</button>
+            `;
+            document.body.appendChild(progressDiv);
+
+            const updateProgress = (message) => {
+                const textEl = document.getElementById('yt-wl-progress-text');
+                if (textEl) {
+                    textEl.textContent = message;
+                }
+            };
+
+            // Add cancel button handler
+            const cancelBtn = document.getElementById('yt-wl-cancel-btn');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', () => {
+                    console.log('User clicked cancel - dispatching cancel event');
+                    updateProgress('Stopping sync...');
+                    cancelBtn.disabled = true;
+                    cancelBtn.style.opacity = '0.5';
+                    cancelBtn.textContent = 'Stopping...';
+                    window.dispatchEvent(new CustomEvent('YT_WL_CANCEL_SYNC'));
+                });
+            }
+
+            // Listen for progress updates from page script
+            window.addEventListener('YT_WL_EXTRACT_PROGRESS', function(event) {
+                const { page, totalVideos } = event.detail;
+                console.log(`Progress: Page ${page}, Total videos: ${totalVideos}`);
+                updateProgress(`Page ${page}: ${totalVideos} videos found...`);
+            });
+
             // Listen for response from page script
             window.addEventListener('YT_WL_EXTRACT_RESPONSE', function(event) {
                 console.log('Received YT_WL_EXTRACT_RESPONSE event');
@@ -78,14 +140,19 @@ function main() {
                 const syncComplete = event.detail.syncComplete || false;
                 console.log(`Received ${videos.length} videos from page script (syncComplete: ${syncComplete})`);
 
-                if (videos.length === 0) {
-                    // Fallback to DOM extraction
-                    const domVideos = extractVideosFromDOM();
-                    console.log(`DOM extraction found ${domVideos.length} videos.`);
-                    sendToBackground(domVideos.length > 0 ? domVideos : videos, syncComplete);
-                } else {
-                    sendToBackground(videos, syncComplete);
-                }
+                updateProgress(`Extraction complete! Found ${videos.length} videos.`);
+
+                setTimeout(() => {
+                    if (videos.length === 0) {
+                        // Fallback to DOM extraction
+                        updateProgress('Trying fallback extraction...');
+                        const domVideos = extractVideosFromDOM();
+                        console.log(`DOM extraction found ${domVideos.length} videos.`);
+                        sendToBackground(domVideos.length > 0 ? domVideos : videos, syncComplete, progressDiv);
+                    } else {
+                        sendToBackground(videos, syncComplete, progressDiv);
+                    }
+                }, 500);
             }, { once: true });
 
             // Request extraction from page script
@@ -97,7 +164,7 @@ function main() {
     }
 }
 
-function sendToBackground(videos, syncComplete) {
+function sendToBackground(videos, syncComplete, progressDiv) {
     chrome.runtime.sendMessage({
         type: 'YT_WL_SYNC',
         videos: videos,
@@ -105,13 +172,16 @@ function sendToBackground(videos, syncComplete) {
     }, (response) => {
         if (chrome.runtime.lastError) {
             console.error('Error sending to background:', chrome.runtime.lastError);
+            if (progressDiv) progressDiv.remove();
             return;
         }
         if (response && response.success) {
             console.log('Successfully sent videos to background script');
+            if (progressDiv) progressDiv.remove();
             alert(`Synced ${videos.length} videos! You can close this window.`);
         } else {
             console.error('Failed to send videos to background script');
+            if (progressDiv) progressDiv.remove();
         }
     });
 }
