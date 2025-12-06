@@ -10,6 +10,8 @@ const VideoGrid = () => {
     const parentRef = useRef(null);
     const resizeObserverRef = useRef(null);
     const [columnCount, setColumnCount] = useState(4);
+    const [showTopShadow, setShowTopShadow] = useState(false);
+    const [showBottomShadow, setShowBottomShadow] = useState(false);
 
     // Update column count based on container width
     const updateColumns = useCallback((element) => {
@@ -19,6 +21,14 @@ const VideoGrid = () => {
         else if (width < 1024) setColumnCount(2); // lg
         else if (width < 1280) setColumnCount(3); // xl
         else setColumnCount(4);                   // 2xl+
+    }, []);
+
+    // Handle scroll shadows
+    const handleScroll = useCallback(() => {
+        if (!parentRef.current) return;
+        const { scrollTop, scrollHeight, clientHeight } = parentRef.current;
+        setShowTopShadow(scrollTop > 0);
+        setShowBottomShadow(scrollTop + clientHeight < scrollHeight - 1);
     }, []);
 
     // Ref callback to set up ResizeObserver when element is attached
@@ -37,10 +47,21 @@ const VideoGrid = () => {
             // Set up ResizeObserver
             resizeObserverRef.current = new ResizeObserver(() => {
                 updateColumns(element);
+                handleScroll(); // Check shadows on resize
             });
             resizeObserverRef.current.observe(element);
+
+            // Set up scroll listener
+            element.addEventListener('scroll', handleScroll);
+            handleScroll(); // Initial check
         }
-    }, [updateColumns]);
+
+        return () => {
+            if (element) {
+                element.removeEventListener('scroll', handleScroll);
+            }
+        };
+    }, [updateColumns, handleScroll]);
 
     // Calculate row count - memoize to prevent unnecessary recalculations
     const rowCount = useMemo(
@@ -100,7 +121,16 @@ const VideoGrid = () => {
                     <p className="text-xl">No videos found.</p>
                 </div>
             ) : (
-                <div ref={setParentRef} className="flex-1 overflow-auto p-6">
+                <div ref={setParentRef} className="flex-1 overflow-auto p-6 relative [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    {/* Top shadow */}
+                    <div className={`fixed top-[73px] left-64 right-0 h-12 pointer-events-none transition-opacity duration-300 z-10 ${
+                        showTopShadow ? 'opacity-100' : 'opacity-0'
+                    }`} style={{ background: 'linear-gradient(to bottom, rgba(3, 7, 18, 0.95), transparent)' }} />
+
+                    {/* Bottom shadow */}
+                    <div className={`fixed bottom-0 left-64 right-0 h-12 pointer-events-none transition-opacity duration-300 z-10 ${
+                        showBottomShadow ? 'opacity-100' : 'opacity-0'
+                    }`} style={{ background: 'linear-gradient(to top, rgba(3, 7, 18, 0.95), transparent)' }} />
             <div
                 style={{
                     height: `${rowVirtualizer.getTotalSize()}px`,

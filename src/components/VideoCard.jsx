@@ -86,7 +86,9 @@ const VideoCard = ({ video, index }) => {
                     className="block"
                     onClick={handleThumbnailClick}
                 >
-                    <img src={thumbnail} alt={video.title} className="w-full aspect-video object-cover" />
+                    <img src={thumbnail} alt={video.title} className={`w-full aspect-video object-cover transition-opacity ${
+                        selectionMode ? 'opacity-60' : ''
+                    }`} />
                     <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
                         {formatDuration(video.duration)}
                     </div>
