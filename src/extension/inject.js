@@ -270,6 +270,7 @@
         let allVideos = [];
         let pageCount = 1;
         let cancelled = false;
+        let lastFetchTime = Date.now(); // Track time of last page fetch
 
         // Listen for cancellation request
         const cancelHandler = () => {
@@ -318,7 +319,13 @@
             // Fetch remaining pages
             while (continuationToken && !cancelled) {
                 pageCount++;
-                console.log(`[Pagination] ========== Fetching page ${pageCount} ==========`);
+
+                // Log fetch timing
+                const now = Date.now();
+                const secondsSinceLastFetch = ((now - lastFetchTime) / 1000).toFixed(2);
+                const isoTime = new Date(now).toISOString();
+                console.log(`(${isoTime}) Fetching page ${pageCount} after ${secondsSinceLastFetch} seconds.`);
+                lastFetchTime = now;
 
                 const pageResult = await fetchNextPage(continuationToken);
                 console.log(`[Pagination] Page ${pageCount} result: ${pageResult.videos.length} videos, next token: ${pageResult.continuationToken ? 'EXISTS' : 'NULL'}`);
@@ -364,6 +371,12 @@
             } else {
                 console.log(`[Pagination] ========== Extraction complete! Total videos: ${allVideos.length} across ${pageCount} pages ==========`);
             }
+
+            // Add playlist indices to maintain YouTube playlist order
+            allVideos = allVideos.map((video, index) => ({
+                ...video,
+                playlistIndex: index
+            }));
         } catch (e) {
             console.error('[Pagination] Error extracting all videos:', e);
             console.error('[Pagination] Error stack:', e.stack);

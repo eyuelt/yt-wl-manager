@@ -54,7 +54,8 @@ export const VideoProvider = ({ children }) => {
                     archivedAt: null,
                     lastSeenAt: now,
                     // Preserve any additional fields from existing video
-                    addedAt: video.addedAt
+                    addedAt: video.addedAt,
+                    // playlistIndex comes from newVideoData
                 });
                 newVideosMap.delete(video.id); // Mark as processed
             } else if (syncComplete && !video.archived) {
@@ -62,7 +63,8 @@ export const VideoProvider = ({ children }) => {
                 updatedVideos.push({
                     ...video,
                     archived: true,
-                    archivedAt: now
+                    archivedAt: now,
+                    playlistIndex: null // Clear playlist index for archived videos
                 });
             } else {
                 // Keep video as-is (either sync incomplete or already archived)
@@ -81,7 +83,8 @@ export const VideoProvider = ({ children }) => {
                 ...newVideo,
                 archived: false,
                 lastSeenAt: now,
-                addedAt: newVideo.addedAt || now
+                addedAt: newVideo.addedAt || now,
+                // playlistIndex comes from newVideo
             });
 
             // Auto-tag new videos
@@ -112,7 +115,9 @@ export const VideoProvider = ({ children }) => {
                 ...video,
                 archived: video.archived ?? false,
                 lastSeenAt: video.lastSeenAt ?? now,
-                archivedAt: video.archivedAt ?? null
+                archivedAt: video.archivedAt ?? null,
+                // playlistIndex will be undefined for old videos, which is fine
+                // They'll be sorted by addedAt as fallback
             }));
 
             setVideos(initialVideos);
@@ -487,11 +492,31 @@ export const VideoProvider = ({ children }) => {
 
         return true;
     }).sort((a, b) => {
-        // Sort by most recently imported (newest first)
-        // Use addedAt timestamp (set when video is first imported)
+        // Non-archived videos come before archived videos
+        if (a.archived !== b.archived) {
+            return a.archived ? 1 : -1; // Non-archived first
+        }
+
+        // For non-archived videos, sort by playlist index (YouTube playlist order)
+        if (!a.archived && !b.archived) {
+            const aIndex = a.playlistIndex ?? Infinity;
+            const bIndex = b.playlistIndex ?? Infinity;
+            if (aIndex !== bIndex) {
+                return aIndex - bIndex; // Ascending order (0 first)
+            }
+        }
+
+        // For archived videos, sort by when they were archived (most recently archived first)
+        if (a.archived && b.archived) {
+            const aArchivedAt = a.archivedAt || 0;
+            const bArchivedAt = b.archivedAt || 0;
+            return bArchivedAt - aArchivedAt; // Descending order (newest first)
+        }
+
+        // Fallback to addedAt for videos without playlistIndex
         const aTime = a.addedAt || 0;
         const bTime = b.addedAt || 0;
-        return bTime - aTime; // Descending order (newest first)
+        return bTime - aTime;
     });
 
     return (
