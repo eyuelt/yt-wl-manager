@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext, useRef } from 'r
 import wlData from '../../wl.json';
 import { autoTag } from '../utils/autoTag';
 import dataStore from '../utils/dataStore';
+import Toast from '../components/Toast';
 
 const VideoContext = createContext();
 
@@ -19,10 +20,20 @@ export const VideoProvider = ({ children }) => {
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedVideos, setSelectedVideos] = useState(new Set());
     const [lastSelectedIndex, setLastSelectedIndex] = useState(null);
+    const [toasts, setToasts] = useState([]);
 
     // Refs to store sync operation IDs for cancellation
     const syncIntervalRef = useRef(null);
     const syncTimeoutRef = useRef(null);
+
+    const showToast = (message, type = 'success') => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, message, type }]);
+    };
+
+    const closeToast = (id) => {
+        setToasts(prev => prev.filter(toast => toast.id !== id));
+    };
 
     // Helper function to perform delta sync
     const performDeltaSync = async (existingVideos, existingTags, newVideos, syncComplete) => {
@@ -259,7 +270,7 @@ export const VideoProvider = ({ children }) => {
                             syncIntervalRef.current = null;
                             syncTimeoutRef.current = null;
                             setIsSyncing(false);
-                            alert(`Successfully synced ${newVideos.length} videos from YouTube! Total: ${updatedVideos.length} (${archivedCount} archived)`);
+                            showToast(`Successfully synced ${newVideos.length} videos from YouTube! Total: ${updatedVideos.length} (${archivedCount} archived)`);
                         }
                     }
                 );
@@ -279,7 +290,7 @@ export const VideoProvider = ({ children }) => {
             syncIntervalRef.current = null;
             syncTimeoutRef.current = null;
             setIsSyncing(false);
-            alert('Sync timed out after 3 minutes. Please try again.');
+            showToast('Sync timed out after 3 minutes. Please try again.', 'error');
         }, 180000);
     };
 
@@ -350,7 +361,7 @@ export const VideoProvider = ({ children }) => {
         await dataStore.setTags(initialTags);
         await dataStore.setTagMetadata({});
 
-        alert('Data reset to wl.json successfully!');
+        showToast('Data reset to wl.json successfully!');
     };
 
     // Selection functions
@@ -419,7 +430,7 @@ export const VideoProvider = ({ children }) => {
         await dataStore.setVideos(updatedVideos);
         clearSelection();
         setSelectionMode(false);
-        alert(`${selectedVideos.size} videos archived successfully!`);
+        showToast(`${selectedVideos.size} videos archived successfully!`);
     };
 
     const deleteSelected = async () => {
@@ -443,7 +454,7 @@ export const VideoProvider = ({ children }) => {
         await dataStore.setTags(updatedTags);
         clearSelection();
         setSelectionMode(false);
-        alert(`${selectedVideos.size} videos deleted successfully!`);
+        showToast(`${selectedVideos.size} videos deleted successfully!`);
     };
 
     const filteredVideos = videos.filter(video => {
@@ -513,6 +524,14 @@ export const VideoProvider = ({ children }) => {
             deleteSelected
         }}>
             {children}
+            {toasts.map(toast => (
+                <Toast
+                    key={toast.id}
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => closeToast(toast.id)}
+                />
+            ))}
         </VideoContext.Provider>
     );
 };
