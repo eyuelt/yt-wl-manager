@@ -1,14 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useVideoContext } from '../context/VideoContext';
 import { Tag, Hash, Database } from 'lucide-react';
 import DataViewer from './DataViewer';
+import ScrollView from './ScrollView';
 
 const Sidebar = () => {
     const { allTags, selectedCategory, setSelectedCategory, videos, tags, updateTagColor, getTagColor, resetToWlJson, showArchived, setShowArchived } = useVideoContext();
     const [isDataViewerOpen, setIsDataViewerOpen] = useState(false);
-    const [showTopShadow, setShowTopShadow] = useState(false);
-    const [showBottomShadow, setShowBottomShadow] = useState(false);
-    const navRef = useRef(null);
 
     const archivedCount = videos.filter(v => v.archived).length;
     const unarchivedCount = videos.filter(v => !v.archived).length;
@@ -28,32 +26,6 @@ const Sidebar = () => {
         // For tag categories, count videos with that tag (excluding archived)
         return videos.filter(v => !v.archived && tags[v.id]?.includes(category)).length;
     };
-
-    // Find max count for bar width calculation (for custom categories only)
-    const maxCount = Math.max(...customCategories.map(cat => getCategoryCount(cat)), 1);
-
-    // Handle scroll shadows
-    const handleScroll = () => {
-        if (!navRef.current) return;
-        const { scrollTop, scrollHeight, clientHeight } = navRef.current;
-        setShowTopShadow(scrollTop > 0);
-        setShowBottomShadow(scrollTop + clientHeight < scrollHeight - 1);
-    };
-
-    useEffect(() => {
-        handleScroll(); // Initial check
-        const nav = navRef.current;
-        if (nav) {
-            nav.addEventListener('scroll', handleScroll);
-            // Check on resize or content changes
-            const resizeObserver = new ResizeObserver(handleScroll);
-            resizeObserver.observe(nav);
-            return () => {
-                nav.removeEventListener('scroll', handleScroll);
-                resizeObserver.disconnect();
-            };
-        }
-    }, [customCategories]);
 
     return (
         <div className="w-64 bg-gray-900 h-screen fixed left-0 top-0 overflow-y-auto border-r border-gray-800 flex flex-col">
@@ -97,25 +69,16 @@ const Sidebar = () => {
             </div>
 
             {/* Custom tags - scrollable */}
-            <nav
-                ref={navRef}
-                className="flex-1 px-4 pb-4 overflow-y-auto relative [&::-webkit-scrollbar]:hidden"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            <ScrollView
+                className="flex-1 px-4 pb-4"
+                shadowColor="rgba(17, 24, 39, 0.7)"
+                shadowSize={28}
             >
-                {/* Top shadow - fixed position */}
-                <div className={`fixed left-0 w-64 h-8 pointer-events-none transition-opacity duration-300 z-10 ${
-                    showTopShadow ? 'opacity-100' : 'opacity-0'
-                }`} style={{
-                    background: 'linear-gradient(to bottom, rgba(17, 24, 39, 0.95), transparent)',
-                    top: `${systemCategories.length * 40 + 72}px` // Adjust based on header + system categories
-                }} />
-
                 <div className="space-y-1">
                     {customCategories.map(category => {
                         const isSystemCategory = category === 'All' || category === 'Uncategorized' || category === 'Archived';
                         const tagColor = !isSystemCategory ? getTagColor(category) : null;
                         const count = getCategoryCount(category);
-                        const barWidth = (count / maxCount) * 100;
 
                         return (
                             <div key={category} className="group relative flex items-center">
@@ -162,15 +125,7 @@ const Sidebar = () => {
                         );
                     })}
                 </div>
-
-                {/* Bottom shadow - fixed position above bottom section */}
-                <div className={`fixed left-0 w-64 h-8 pointer-events-none transition-opacity duration-300 z-10 ${
-                    showBottomShadow ? 'opacity-100' : 'opacity-0'
-                }`} style={{
-                    background: 'linear-gradient(to top, rgba(17, 24, 39, 0.95), transparent)',
-                    bottom: '120px' // Height of bottom section (View Data + Show Archived + padding)
-                }} />
-            </nav>
+            </ScrollView>
 
 
             <div className="p-4 border-t border-gray-800 space-y-2">

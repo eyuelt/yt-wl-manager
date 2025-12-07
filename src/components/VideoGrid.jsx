@@ -4,14 +4,14 @@ import { CheckSquare, RefreshCw } from 'lucide-react';
 import { useVideoContext } from '../context/VideoContext';
 import VideoCard from './VideoCard';
 import SearchBar from './SearchBar';
+import ScrollView from './ScrollView';
 
 const VideoGrid = () => {
     const { filteredVideos, selectionMode, toggleSelectionMode, syncVideos, cancelSync, isSyncing } = useVideoContext();
-    const parentRef = useRef(null);
+    const scrollViewRef = useRef(null);
+    const contentRef = useRef(null);
     const resizeObserverRef = useRef(null);
     const [columnCount, setColumnCount] = useState(4);
-    const [showTopShadow, setShowTopShadow] = useState(false);
-    const [showBottomShadow, setShowBottomShadow] = useState(false);
 
     // Update column count based on container width
     const updateColumns = useCallback((element) => {
@@ -23,22 +23,14 @@ const VideoGrid = () => {
         else setColumnCount(4);                   // 2xl+
     }, []);
 
-    // Handle scroll shadows
-    const handleScroll = useCallback(() => {
-        if (!parentRef.current) return;
-        const { scrollTop, scrollHeight, clientHeight } = parentRef.current;
-        setShowTopShadow(scrollTop > 0);
-        setShowBottomShadow(scrollTop + clientHeight < scrollHeight - 1);
-    }, []);
-
     // Ref callback to set up ResizeObserver when element is attached
-    const setParentRef = useCallback((element) => {
+    const setContentRef = useCallback((element) => {
         // Clean up previous observer
         if (resizeObserverRef.current) {
             resizeObserverRef.current.disconnect();
         }
 
-        parentRef.current = element;
+        contentRef.current = element;
 
         if (element) {
             // Initial column calculation
@@ -47,21 +39,10 @@ const VideoGrid = () => {
             // Set up ResizeObserver
             resizeObserverRef.current = new ResizeObserver(() => {
                 updateColumns(element);
-                handleScroll(); // Check shadows on resize
             });
             resizeObserverRef.current.observe(element);
-
-            // Set up scroll listener
-            element.addEventListener('scroll', handleScroll);
-            handleScroll(); // Initial check
         }
-
-        return () => {
-            if (element) {
-                element.removeEventListener('scroll', handleScroll);
-            }
-        };
-    }, [updateColumns, handleScroll]);
+    }, [updateColumns]);
 
     // Calculate row count - memoize to prevent unnecessary recalculations
     const rowCount = useMemo(
@@ -72,7 +53,7 @@ const VideoGrid = () => {
     // Create virtualizer for rows
     const rowVirtualizer = useVirtualizer({
         count: rowCount,
-        getScrollElement: () => parentRef.current,
+        getScrollElement: () => scrollViewRef.current,
         estimateSize: () => 400, // Estimated height of each row (card height + gap)
         overscan: 2, // Render 2 extra rows above and below viewport
     });
@@ -121,56 +102,54 @@ const VideoGrid = () => {
                     <p className="text-xl">No videos found.</p>
                 </div>
             ) : (
-                <div ref={setParentRef} className="flex-1 overflow-auto p-6 relative [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                    {/* Top shadow */}
-                    <div className={`fixed top-[73px] left-64 right-0 h-12 pointer-events-none transition-opacity duration-300 z-10 ${
-                        showTopShadow ? 'opacity-100' : 'opacity-0'
-                    }`} style={{ background: 'linear-gradient(to bottom, rgba(3, 7, 18, 0.95), transparent)' }} />
-
-                    {/* Bottom shadow */}
-                    <div className={`fixed bottom-0 left-64 right-0 h-12 pointer-events-none transition-opacity duration-300 z-10 ${
-                        showBottomShadow ? 'opacity-100' : 'opacity-0'
-                    }`} style={{ background: 'linear-gradient(to top, rgba(3, 7, 18, 0.95), transparent)' }} />
-            <div
-                style={{
-                    height: `${rowVirtualizer.getTotalSize()}px`,
-                    width: '100%',
-                    position: 'relative',
-                }}
-            >
-                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                    const startIndex = virtualRow.index * columnCount;
-                    const rowVideos = filteredVideos.slice(startIndex, startIndex + columnCount);
-
-                    return (
+                <ScrollView
+                    ref={scrollViewRef}
+                    className="flex-1"
+                    shadowColor="rgba(3, 7, 18, 0.7)"
+                    shadowSize={40}
+                >
+                    <div ref={setContentRef} className="p-6">
                         <div
-                            key={virtualRow.key}
                             style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
+                                height: `${rowVirtualizer.getTotalSize()}px`,
                                 width: '100%',
-                                transform: `translateY(${virtualRow.start}px)`,
+                                position: 'relative',
                             }}
                         >
-                            <div
-                                className="grid gap-6 select-none"
-                                style={{
-                                    gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
-                                }}
-                            >
-                                {rowVideos.map((video, colIndex) => {
-                                    const videoIndex = startIndex + colIndex;
-                                    return (
-                                        <VideoCard key={video.id} video={video} index={videoIndex} />
-                                    );
-                                })}
-                            </div>
+                            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                                const startIndex = virtualRow.index * columnCount;
+                                const rowVideos = filteredVideos.slice(startIndex, startIndex + columnCount);
+
+                                return (
+                                    <div
+                                        key={virtualRow.key}
+                                        style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            width: '100%',
+                                            transform: `translateY(${virtualRow.start}px)`,
+                                        }}
+                                    >
+                                        <div
+                                            className="grid gap-6 select-none"
+                                            style={{
+                                                gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+                                            }}
+                                        >
+                                            {rowVideos.map((video, colIndex) => {
+                                                const videoIndex = startIndex + colIndex;
+                                                return (
+                                                    <VideoCard key={video.id} video={video} index={videoIndex} />
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
-                    );
-                })}
-            </div>
-                </div>
+                    </div>
+                </ScrollView>
             )}
         </div>
     );
