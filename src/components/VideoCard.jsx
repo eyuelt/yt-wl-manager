@@ -101,13 +101,13 @@ const VideoCard = ({ video, index }) => {
             </div>
 
             <div className="p-4 flex-1 flex flex-col">
-                <h3 className="text-white font-semibold text-lg leading-tight mb-2 line-clamp-2 select-text" title={video.title}>
+                <h3 className="text-white font-semibold text-lg leading-tight mb-2 select-text truncate" title={video.title}>
                     {video.title}
                 </h3>
-                <p className="text-gray-400 text-sm mb-4 select-text">{video.channel}</p>
+                <p className="text-gray-400 text-sm mb-4 select-text truncate">{video.channel}</p>
 
                 <div className="mt-auto">
-                    <div className="flex flex-wrap gap-2 mb-3">
+                    <div className="flex flex-wrap gap-2">
                         {videoTags.map(tag => (
                             <span
                                 key={tag}
