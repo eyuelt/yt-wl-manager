@@ -48,12 +48,13 @@ const VideoGrid = () => {
         [filteredVideos.length, columnCount]
     );
 
-    // Create virtualizer for rows
+    // Create virtualizer for rows with dynamic measurement
     const rowVirtualizer = useVirtualizer({
         count: rowCount,
         getScrollElement: () => scrollViewRef.current,
-        estimateSize: () => 400, // Estimated height of each row (card height + gap)
+        estimateSize: () => 400, // Initial estimate (card height + gap)
         overscan: 2, // Render 2 extra rows above and below viewport
+        measureElement: (element) => element?.getBoundingClientRect().height ?? 400, // Measure actual height
     });
 
     // Force remeasure when column count changes
@@ -90,6 +91,8 @@ const VideoGrid = () => {
                                 return (
                                     <div
                                         key={virtualRow.key}
+                                        data-index={virtualRow.index}
+                                        ref={rowVirtualizer.measureElement}
                                         style={{
                                             position: 'absolute',
                                             top: 0,
@@ -99,9 +102,9 @@ const VideoGrid = () => {
                                         }}
                                     >
                                         <div
-                                            className="grid gap-6 select-none"
+                                            className="grid gap-6 mb-6 select-none"
                                             style={{
-                                                gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+                                                gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`
                                             }}
                                         >
                                             {rowVideos.map((video, colIndex) => {
