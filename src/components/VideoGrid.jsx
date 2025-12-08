@@ -1,13 +1,11 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { CheckSquare, RefreshCw } from 'lucide-react';
 import { useVideoContext } from '../context/VideoContext';
 import VideoCard from './VideoCard';
-import SearchBar from './SearchBar';
 import ScrollView from './ScrollView';
 
 const VideoGrid = () => {
-    const { filteredVideos, selectionMode, toggleSelectionMode, syncVideos, cancelSync, isSyncing } = useVideoContext();
+    const { filteredVideos } = useVideoContext();
     const scrollViewRef = useRef(null);
     const contentRef = useRef(null);
     const resizeObserverRef = useRef(null);
@@ -64,38 +62,7 @@ const VideoGrid = () => {
     }, [columnCount, rowVirtualizer]);
 
     return (
-        <div className="h-screen flex flex-col">
-            {/* Search Bar Header */}
-            <div className="flex-none p-6 pb-4 border-b border-gray-800">
-                <div className="flex items-center justify-between gap-8">
-                    <SearchBar />
-                    <div className="flex gap-3 flex-shrink-0">
-                        <button
-                            onClick={toggleSelectionMode}
-                            className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
-                                selectionMode
-                                    ? 'bg-red-600 text-white'
-                                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700'
-                            }`}
-                        >
-                            <CheckSquare size={20} />
-                            {selectionMode ? 'Cancel' : 'Select'}
-                        </button>
-                        <button
-                            onClick={isSyncing ? cancelSync : syncVideos}
-                            className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
-                                isSyncing
-                                    ? 'bg-orange-600 hover:bg-orange-700'
-                                    : 'bg-red-600 hover:bg-red-700'
-                            } text-white`}
-                        >
-                            <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />
-                            {isSyncing ? 'Cancel' : 'Sync'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-
+        <div className="flex-1 min-h-0 flex flex-col">
             {/* Video Grid */}
             {filteredVideos.length === 0 ? (
                 <div className="flex flex-col items-center justify-center flex-1 text-gray-400">
