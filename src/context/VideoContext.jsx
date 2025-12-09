@@ -15,7 +15,6 @@ export const VideoProvider = ({ children }) => {
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [tagMetadata, setTagMetadata] = useState({}); // { tagName: { color: '#hex' } }
     const [isSyncing, setIsSyncing] = useState(false);
-    const [showArchived, setShowArchived] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedVideos, setSelectedVideos] = useState(new Set());
@@ -208,6 +207,15 @@ export const VideoProvider = ({ children }) => {
             unsubscribe();
         };
     }, []);
+
+    // Exit selection mode when category changes
+    useEffect(() => {
+        if (selectionMode) {
+            setSelectionMode(false);
+            setSelectedVideos(new Set());
+            setLastSelectedIndex(null);
+        }
+    }, [selectedCategory]);
 
     const cancelSync = () => {
         if (syncIntervalRef.current) {
@@ -462,13 +470,38 @@ export const VideoProvider = ({ children }) => {
         showToast(`${selectedVideos.size} videos deleted successfully!`);
     };
 
+    const unarchiveSelected = async () => {
+        if (selectedVideos.size === 0) return;
+
+        if (!window.confirm(`Unarchive ${selectedVideos.size} selected videos?`)) {
+            return;
+        }
+
+        const updatedVideos = videos.map(video => {
+            if (selectedVideos.has(video.id)) {
+                return {
+                    ...video,
+                    archived: false,
+                    archivedAt: null
+                };
+            }
+            return video;
+        });
+
+        setVideos(updatedVideos);
+        await dataStore.setVideos(updatedVideos);
+        clearSelection();
+        setSelectionMode(false);
+        showToast(`${selectedVideos.size} videos unarchived successfully!`);
+    };
+
     const filteredVideos = videos.filter(video => {
         // Handle "Archived" category
         if (selectedCategory === 'Archived') {
             if (video.archived !== true) return false;
         } else {
-            // For all other categories, exclude archived videos unless showArchived is true
-            if (video.archived && !showArchived) {
+            // For all other categories, always exclude archived videos
+            if (video.archived) {
                 return false;
             }
 
@@ -536,8 +569,6 @@ export const VideoProvider = ({ children }) => {
             cancelSync,
             resetToWlJson,
             isSyncing,
-            showArchived,
-            setShowArchived,
             searchQuery,
             setSearchQuery,
             selectionMode,
@@ -546,7 +577,9 @@ export const VideoProvider = ({ children }) => {
             toggleVideoSelection,
             clearSelection,
             archiveSelected,
-            deleteSelected
+            deleteSelected,
+            unarchiveSelected,
+            showToast
         }}>
             {children}
             {toasts.map(toast => (

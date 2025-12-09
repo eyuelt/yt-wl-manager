@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, RotateCcw } from 'lucide-react';
+import { X, RotateCcw, Trash2 } from 'lucide-react';
 import { JsonViewer } from '@textea/json-viewer';
 import dataStore from '../utils/dataStore';
+import { useVideoContext } from '../context/VideoContext';
 
 const DataViewer = ({ isOpen, onClose, onReset }) => {
+    const { showToast } = useVideoContext();
     const [activeTab, setActiveTab] = useState('videos');
     const [videosData, setVideosData] = useState([]);
     const [tagsData, setTagsData] = useState({});
@@ -46,6 +48,14 @@ const DataViewer = ({ isOpen, onClose, onReset }) => {
     const handleReset = () => {
         if (window.confirm('Are you sure you want to reset all data to wl.json? This will delete all synced videos and custom tags.')) {
             onReset();
+            onClose();
+        }
+    };
+
+    const handleDeleteAll = async () => {
+        if (window.confirm('Delete all data? This will permanently remove all videos, tags, and settings. This cannot be undone.')) {
+            await dataStore.clear();
+            showToast('All data deleted successfully!');
             onClose();
         }
     };
@@ -143,13 +153,22 @@ const DataViewer = ({ isOpen, onClose, onReset }) => {
 
                 {/* Footer */}
                 <div className="flex items-center justify-between p-4 border-t border-gray-800">
-                    <button
-                        onClick={handleReset}
-                        className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors font-medium"
-                    >
-                        <RotateCcw size={18} />
-                        Reset to wl.json
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleReset}
+                            className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors font-medium"
+                        >
+                            <RotateCcw size={18} />
+                            Reset to wl.json
+                        </button>
+                        <button
+                            onClick={handleDeleteAll}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
+                        >
+                            <Trash2 size={18} />
+                            Delete All Data
+                        </button>
+                    </div>
                     <button
                         onClick={onClose}
                         className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
