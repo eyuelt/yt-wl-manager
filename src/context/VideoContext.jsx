@@ -229,12 +229,40 @@ export const VideoProvider = ({ children }) => {
         setIsSyncing(false);
     };
 
-    const syncVideos = () => {
+    const syncVideos = async () => {
         // IMPORTANT: Replace this with your actual extension ID from chrome://extensions/
         const EXTENSION_ID = 'aiokgdfhinicjhknkhadpppmgmbnlhap';  // TODO(eyuel)
 
         // Set syncing state
         setIsSyncing(true);
+
+        // Collect archived video IDs
+        const archivedIds = videos
+            .filter(v => v.archived === true)
+            .map(v => v.id);
+
+        // Send archived IDs to extension before opening YouTube
+        if (typeof chrome !== 'undefined' && chrome.runtime && archivedIds.length > 0) {
+            try {
+                await new Promise((resolve, reject) => {
+                    chrome.runtime.sendMessage(
+                        EXTENSION_ID,
+                        { type: 'SET_ARCHIVED_IDS', archivedIds },
+                        (response) => {
+                            if (chrome.runtime.lastError) {
+                                console.warn('Failed to send archived IDs:', chrome.runtime.lastError);
+                                reject(chrome.runtime.lastError);
+                            } else {
+                                console.log('Sent', archivedIds.length, 'archived video IDs to extension');
+                                resolve(response);
+                            }
+                        }
+                    );
+                });
+            } catch (e) {
+                console.warn('Extension not available, continuing without archived highlighting');
+            }
+        }
 
         // Open YouTube Watch Later page
         window.open(
@@ -423,10 +451,6 @@ export const VideoProvider = ({ children }) => {
     const archiveSelected = async () => {
         if (selectedVideos.size === 0) return;
 
-        if (!window.confirm(`Archive ${selectedVideos.size} selected videos?`)) {
-            return;
-        }
-
         const now = Date.now();
         const updatedVideos = videos.map(video => {
             if (selectedVideos.has(video.id)) {
@@ -449,10 +473,6 @@ export const VideoProvider = ({ children }) => {
     const deleteSelected = async () => {
         if (selectedVideos.size === 0) return;
 
-        if (!window.confirm(`Permanently delete ${selectedVideos.size} selected videos? This cannot be undone.`)) {
-            return;
-        }
-
         const updatedVideos = videos.filter(video => !selectedVideos.has(video.id));
         const updatedTags = { ...tags };
 
@@ -472,10 +492,6 @@ export const VideoProvider = ({ children }) => {
 
     const unarchiveSelected = async () => {
         if (selectedVideos.size === 0) return;
-
-        if (!window.confirm(`Unarchive ${selectedVideos.size} selected videos?`)) {
-            return;
-        }
 
         const updatedVideos = videos.map(video => {
             if (selectedVideos.has(video.id)) {

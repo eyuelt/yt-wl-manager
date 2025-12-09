@@ -18,11 +18,44 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
         return true; // Keep the message channel open for async response
     }
+
+    if (message.type === 'GET_ARCHIVED_IDS') {
+        // Retrieve archived video IDs for content script
+        chrome.storage.local.get(['archivedVideoIds', 'archivedIdsTimestamp'], (result) => {
+            sendResponse({
+                success: true,
+                archivedIds: result.archivedVideoIds || [],
+                timestamp: result.archivedIdsTimestamp
+            });
+        });
+        return true; // Keep the message channel open for async response
+    }
+
+    if (message.type === 'CLEAR_ARCHIVED_IDS') {
+        // Clear archived video IDs
+        chrome.storage.local.remove(['archivedVideoIds', 'archivedIdsTimestamp'], () => {
+            console.log('Cleared archived IDs');
+            sendResponse({ success: true });
+        });
+        return true; // Keep the message channel open for async response
+    }
 });
 
 // Listen for messages from external web pages (the app)
 chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
     console.log('Background received external message:', message, 'from:', sender.url);
+
+    if (message.type === 'SET_ARCHIVED_IDS') {
+        // Store archived video IDs from web app
+        chrome.storage.local.set({
+            archivedVideoIds: message.archivedIds,
+            archivedIdsTimestamp: Date.now()
+        }, () => {
+            console.log('Stored archived IDs:', message.archivedIds.length);
+            sendResponse({ success: true });
+        });
+        return true; // Keep the message channel open for async response
+    }
 
     if (message.type === 'GET_YT_WL_DATA') {
         // Retrieve and send the stored videos
@@ -36,8 +69,8 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
                     timestamp: result.ytWatchLaterTimestamp
                 });
 
-                // Clear the storage after sending
-                chrome.storage.local.remove(['ytWatchLaterVideos', 'ytWatchLaterSyncComplete', 'ytWatchLaterTimestamp']);
+                // Clear the storage after sending (including archived IDs)
+                chrome.storage.local.remove(['ytWatchLaterVideos', 'ytWatchLaterSyncComplete', 'ytWatchLaterTimestamp', 'archivedVideoIds', 'archivedIdsTimestamp']);
             } else {
                 sendResponse({ success: false, message: 'No data available' });
             }
