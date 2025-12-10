@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import wlData from '../../wl.json';
 import { autoTag } from '../utils/autoTag';
-import { geminiTag } from '../utils/geminiTag';
+import { geminiTag, geminiBatchTag } from '../utils/geminiTag';
 import dataStore from '../utils/dataStore';
 import Toast from '../components/Toast';
 
@@ -113,27 +113,26 @@ export const VideoProvider = ({ children }) => {
                 return;
             }
 
-            console.log(`Tagging ${newVideosList.length} new videos with Gemini AI...`);
+            console.log(`Batch tagging ${newVideosList.length} new videos with Gemini AI...`);
+
+            // Extract videos from the list
+            const videos = newVideosList.map(item => item.newVideo);
+
+            // Batch tag all videos in one request
+            const tagMap = await geminiBatchTag(videos, settings.geminiApiKey);
+
+            // Apply tags to currentTags
             let totalNewTags = 0;
+            newVideosList.forEach(({ videoId }) => {
+                if (tagMap[videoId] && tagMap[videoId].length > 0) {
+                    // Add Gemini tags to existing tags
+                    const existingTags = currentTags[videoId] || [];
+                    const combinedTags = [...new Set([...existingTags, ...tagMap[videoId]])];
 
-            for (const { videoId, newVideo } of newVideosList) {
-                try {
-                    const geminiTags = await geminiTag(newVideo, settings.geminiApiKey);
-                    if (geminiTags.length > 0) {
-                        // Add Gemini tags to existing tags
-                        const existingTags = currentTags[videoId] || [];
-                        const combinedTags = [...new Set([...existingTags, ...geminiTags])];
-
-                        currentTags[videoId] = combinedTags;
-                        totalNewTags += geminiTags.length;
-                    }
-
-                    // Small delay to avoid rate limiting
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                } catch (error) {
-                    console.error(`Failed to tag video ${videoId} with Gemini:`, error);
+                    currentTags[videoId] = combinedTags;
+                    totalNewTags += tagMap[videoId].length;
                 }
-            }
+            });
 
             // Update tags in storage
             await dataStore.setTags(currentTags);
@@ -166,28 +165,40 @@ export const VideoProvider = ({ children }) => {
         }
 
         const selectedVideoList = videos.filter(v => selectedVideos.has(v.id));
-        let totalNewTags = 0;
 
-        showToast(`Re-tagging ${selectedVideoList.length} videos with AI...`, 'success');
+        showToast(`Batch tagging ${selectedVideoList.length} videos with AI...`, 'success');
 
-        for (const video of selectedVideoList) {
-            try {
-                const newTags = await geminiTag(video, settings.geminiApiKey);
-                for (const tag of newTags) {
-                    await addTag(video.id, tag);
+        try {
+            // Batch tag all selected videos in one request
+            const tagMap = await geminiBatchTag(selectedVideoList, settings.geminiApiKey);
+
+            console.log('=== APPLYING TAGS ===');
+            console.log('Selected videos:', selectedVideoList.map(v => ({ id: v.id, title: v.title })));
+            console.log('Tag map:', tagMap);
+
+            let totalNewTags = 0;
+            for (const video of selectedVideoList) {
+                console.log(`Checking video ${video.id} ("${video.title}")`);
+                if (tagMap[video.id] && tagMap[video.id].length > 0) {
+                    console.log(`  Found tags:`, tagMap[video.id]);
+                    for (const tag of tagMap[video.id]) {
+                        console.log(`  Adding tag "${tag}" to video ${video.id}`);
+                        await addTag(video.id, tag);
+                    }
+                    totalNewTags += tagMap[video.id].length;
+                } else {
+                    console.log(`  No tags found for video ${video.id}`);
                 }
-                totalNewTags += newTags.length;
-
-                // Small delay to avoid rate limiting
-                await new Promise(resolve => setTimeout(resolve, 100));
-            } catch (error) {
-                console.error(`Failed to re-tag video ${video.id}:`, error);
             }
-        }
+            console.log('====================');
 
-        clearSelection();
-        setSelectionMode(false);
-        showToast(`Added ${totalNewTags} AI-generated tags to ${selectedVideoList.length} videos`);
+            clearSelection();
+            setSelectionMode(false);
+            showToast(`Added ${totalNewTags} AI-generated tags to ${selectedVideoList.length} videos`);
+        } catch (error) {
+            console.error('Failed to batch re-tag videos:', error);
+            showToast('Failed to tag videos with AI', 'error');
+        }
     };
 
     useEffect(() => {
@@ -439,15 +450,31 @@ export const VideoProvider = ({ children }) => {
     };
 
     const addTag = async (videoId, tag) => {
-        const newTags = { ...tags };
-        if (!newTags[videoId]) {
-            newTags[videoId] = [];
-        }
-        if (!newTags[videoId].includes(tag)) {
-            newTags[videoId].push(tag);
-            setTags(newTags);
-            await dataStore.setTags(newTags);
+        console.log(`[addTag] Called with videoId: ${videoId}, tag: "${tag}"`);
+        console.log(`[addTag] Current tags for video:`, tags[videoId]);
 
+        // Use functional update to ensure we work with the latest state
+        let updatedTags;
+        setTags(prevTags => {
+            const newTags = { ...prevTags };
+            if (!newTags[videoId]) {
+                newTags[videoId] = [];
+                console.log(`[addTag] Created new tag array for video ${videoId}`);
+            }
+            if (!newTags[videoId].includes(tag)) {
+                newTags[videoId].push(tag);
+                console.log(`[addTag] Added tag "${tag}" to video ${videoId}. New tags:`, newTags[videoId]);
+                updatedTags = newTags;
+                return newTags;
+            } else {
+                console.log(`[addTag] Tag "${tag}" already exists for video ${videoId}, skipping`);
+                return prevTags;
+            }
+        });
+
+        // Save to dataStore if we actually updated
+        if (updatedTags) {
+            await dataStore.setTags(updatedTags);
             setAllTags(prev => new Set(prev).add(tag));
         }
     };
