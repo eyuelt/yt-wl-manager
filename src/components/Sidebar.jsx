@@ -3,12 +3,16 @@ import { useVideoContext } from '../context/VideoContext';
 import { Tag, Hash, Database, Settings as SettingsIcon } from 'lucide-react';
 import DataViewer from './DataViewer';
 import Settings from './Settings';
+import TagMenu from './TagMenu';
+import MergeTagModal from './MergeTagModal';
 import ScrollView from './ScrollView';
 
 const Sidebar = () => {
-    const { allTags, selectedCategory, setSelectedCategory, videos, tags, updateTagColor, getTagColor, resetToWlJson } = useVideoContext();
+    const { allTags, selectedCategory, setSelectedCategory, videos, tags, updateTagColor, getTagColor, mergeTag, resetToWlJson } = useVideoContext();
     const [isDataViewerOpen, setIsDataViewerOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
+    const [tagToMerge, setTagToMerge] = useState(null);
 
     const archivedCount = videos.filter(v => v.archived).length;
     const unarchivedCount = videos.filter(v => !v.archived).length;
@@ -107,19 +111,14 @@ const Sidebar = () => {
                                 </button>
 
                                 {!isSystemCategory && (
-                                    <input
-                                        type="color"
-                                        value={tagColor}
-                                        onChange={(e) => updateTagColor(category, e.target.value)}
-                                        className="absolute right-2 w-6 h-6 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
-                                        onClick={(e) => e.stopPropagation()}
-                                        title="Change tag color"
-                                    />
-                                )}
-                                {!isSystemCategory && (
-                                    <div
-                                        className="absolute right-2 w-4 h-4 rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/20"
-                                        style={{ backgroundColor: tagColor }}
+                                    <TagMenu
+                                        tag={category}
+                                        color={tagColor}
+                                        onColorChange={updateTagColor}
+                                        onMergeClick={(tag) => {
+                                            setTagToMerge(tag);
+                                            setIsMergeModalOpen(true);
+                                        }}
                                     />
                                 )}
                             </div>
@@ -154,6 +153,17 @@ const Sidebar = () => {
                 isOpen={isDataViewerOpen}
                 onClose={() => setIsDataViewerOpen(false)}
                 onReset={resetToWlJson}
+            />
+            <MergeTagModal
+                isOpen={isMergeModalOpen}
+                onClose={() => {
+                    setIsMergeModalOpen(false);
+                    setTagToMerge(null);
+                }}
+                sourceTag={tagToMerge}
+                allTags={allTags}
+                onMerge={mergeTag}
+                getTagColor={getTagColor}
             />
         </div>
     );

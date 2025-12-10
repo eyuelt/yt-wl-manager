@@ -505,6 +505,46 @@ export const VideoProvider = ({ children }) => {
         return tagMetadata[tag]?.color || '#2563EB'; // Default to blue-600
     };
 
+    const mergeTag = async (sourceTag, targetTag) => {
+        if (sourceTag === targetTag) return;
+
+        const newTags = { ...tags };
+        let videosAffected = 0;
+
+        // Find all videos with sourceTag and reassign to targetTag
+        Object.keys(newTags).forEach(videoId => {
+            if (newTags[videoId]?.includes(sourceTag)) {
+                // Remove sourceTag
+                newTags[videoId] = newTags[videoId].filter(t => t !== sourceTag);
+                // Add targetTag if not already present
+                if (!newTags[videoId].includes(targetTag)) {
+                    newTags[videoId].push(targetTag);
+                }
+                // Clean up empty arrays
+                if (newTags[videoId].length === 0) {
+                    delete newTags[videoId];
+                }
+                videosAffected++;
+            }
+        });
+
+        // Update state and storage
+        setTags(newTags);
+        await dataStore.setTags(newTags);
+
+        // Update allTags (remove sourceTag, ensure targetTag exists)
+        const newAllTags = new Set();
+        Object.values(newTags).forEach(videoTags => {
+            videoTags.forEach(tag => newAllTags.add(tag));
+        });
+        setAllTags(newAllTags);
+
+        // Switch to target tag category
+        setSelectedCategory(targetTag);
+
+        showToast(`Merged "${sourceTag}" into "${targetTag}" (${videosAffected} videos updated)`);
+    };
+
     const resetToWlJson = async () => {
         // Clear all data
         await dataStore.clear();
@@ -711,6 +751,7 @@ export const VideoProvider = ({ children }) => {
             removeTag,
             updateTagColor,
             getTagColor,
+            mergeTag,
             syncVideos,
             cancelSync,
             resetToWlJson,
