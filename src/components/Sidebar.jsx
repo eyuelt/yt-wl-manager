@@ -8,7 +8,7 @@ import MergeTagModal from './MergeTagModal';
 import ScrollView from './ScrollView';
 
 const Sidebar = () => {
-    const { allTags, selectedCategory, setSelectedCategory, videos, tags, updateTagColor, getTagColor, mergeTag, resetToWlJson } = useVideoContext();
+    const { allTags, selectedCategory, setSelectedCategory, videos, tags, updateTagColor, getTagColor, mergeTag } = useVideoContext();
     const [isDataViewerOpen, setIsDataViewerOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
@@ -152,7 +152,6 @@ const Sidebar = () => {
             <DataViewer
                 isOpen={isDataViewerOpen}
                 onClose={() => setIsDataViewerOpen(false)}
-                onReset={resetToWlJson}
             />
             <MergeTagModal
                 isOpen={isMergeModalOpen}

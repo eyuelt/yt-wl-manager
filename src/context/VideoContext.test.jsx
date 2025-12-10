@@ -2,44 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { VideoProvider, useVideoContext } from './VideoContext';
 
-// Mock wl.json with inline data
-vi.mock('../../wl.json', () => ({
-    default: {
-        entries: [
-            {
-                id: 'test-1',
-                title: 'Test Video 1',
-                description: 'Tech video',
-                channel: 'Tech Channel',
-                thumbnails: [],
-                duration: 600,
-                url: 'https://youtube.com/1',
-            },
-            {
-                id: 'test-2',
-                title: 'Test Video 2',
-                description: 'Gaming video',
-                channel: 'Gaming Channel',
-                thumbnails: [],
-                duration: 600,
-                url: 'https://youtube.com/2',
-            },
-        ],
-    },
-}));
-
 describe('VideoContext', () => {
     beforeEach(() => {
         localStorage.clear();
     });
 
-    it('provides initial video data', async () => {
+    it('provides initial empty video data', async () => {
         const { result } = renderHook(() => useVideoContext(), {
             wrapper: VideoProvider,
         });
 
         await waitFor(() => {
-            expect(result.current.videos).toHaveLength(2);
+            expect(result.current.videos).toHaveLength(0);
         });
     });
 

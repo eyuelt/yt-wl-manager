@@ -4,16 +4,6 @@ import userEvent from '@testing-library/user-event';
 import Sidebar from './Sidebar';
 import { VideoProvider } from '../context/VideoContext';
 
-// Mock wl.json with inline data
-vi.mock('../../wl.json', () => ({
-    default: {
-        entries: [
-            { id: '1', title: 'Video 1', channel: 'Channel 1', thumbnails: [], duration: 600, url: 'https://youtube.com/1' },
-            { id: '2', title: 'Video 2', channel: 'Channel 2', thumbnails: [], duration: 600, url: 'https://youtube.com/2' },
-        ],
-    },
-}));
-
 const renderWithContext = (component) => {
     return render(<VideoProvider>{component}</VideoProvider>);
 };
@@ -27,7 +17,7 @@ describe('Sidebar', () => {
     it('displays video count', async () => {
         renderWithContext(<Sidebar />);
         await waitFor(() => {
-            expect(screen.getByText('2 videos')).toBeInTheDocument();
+            expect(screen.getByText('0 videos')).toBeInTheDocument();
         });
     });
 

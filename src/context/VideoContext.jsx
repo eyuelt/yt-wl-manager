@@ -1,5 +1,4 @@
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
-import wlData from '../../wl.json';
 import { autoTag } from '../utils/autoTag';
 import { geminiTag, geminiBatchTag } from '../utils/geminiTag';
 import dataStore from '../utils/dataStore';
@@ -205,12 +204,6 @@ export const VideoProvider = ({ children }) => {
         // Load initial data from dataStore
         const loadInitialData = async () => {
             let initialVideos = await dataStore.getVideos();
-
-            if (initialVideos.length === 0) {
-                // No saved data, use wl.json
-                initialVideos = wlData.entries || [];
-                await dataStore.setVideos(initialVideos);
-            }
 
             // Ensure all videos have the new fields (migration for existing data)
             const now = Date.now();
@@ -545,36 +538,6 @@ export const VideoProvider = ({ children }) => {
         showToast(`Merged "${sourceTag}" into "${targetTag}" (${videosAffected} videos updated)`);
     };
 
-    const resetToWlJson = async () => {
-        // Clear all data
-        await dataStore.clear();
-
-        // Reload from wl.json
-        const initialVideos = wlData.entries || [];
-        setVideos(initialVideos);
-        await dataStore.setVideos(initialVideos);
-
-        // Re-run auto-tagging
-        const initialTags = {};
-        const newAllTags = new Set();
-
-        initialVideos.forEach(video => {
-            const tags = autoTag(video);
-            if (tags.length > 0) {
-                initialTags[video.id] = tags;
-                tags.forEach(tag => newAllTags.add(tag));
-            }
-        });
-
-        setTags(initialTags);
-        setAllTags(newAllTags);
-        setTagMetadata({});
-        await dataStore.setTags(initialTags);
-        await dataStore.setTagMetadata({});
-
-        showToast('Data reset to wl.json successfully!');
-    };
-
     // Selection functions
     const toggleSelectionMode = () => {
         setSelectionMode(!selectionMode);
@@ -754,7 +717,6 @@ export const VideoProvider = ({ children }) => {
             mergeTag,
             syncVideos,
             cancelSync,
-            resetToWlJson,
             isSyncing,
             searchQuery,
             setSearchQuery,

@@ -1,27 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import VideoCard from './VideoCard';
 import { VideoProvider } from '../context/VideoContext';
-
-// Mock wl.json with inline data
-vi.mock('../../wl.json', () => ({
-    default: {
-        entries: [
-            {
-                id: 'test-video-1',
-                title: 'Test Video 1',
-                description: 'A test video',
-                duration: 600,
-                channel: 'Test Channel',
-                thumbnails: [
-                    { url: 'https://example.com/thumb.jpg', height: 188, width: 336 },
-                ],
-                url: 'https://www.youtube.com/watch?v=test-video-1',
-            },
-        ],
-    },
-}));
 
 const mockVideo = {
     id: 'test-video-1',
