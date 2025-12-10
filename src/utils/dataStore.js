@@ -10,7 +10,8 @@
 const KEYS = {
     VIDEOS: 'yt-wl-data',
     TAGS: 'yt-wl-tags',
-    TAG_METADATA: 'yt-wl-tag-metadata'
+    TAG_METADATA: 'yt-wl-tag-metadata',
+    SETTINGS: 'yt-wl-settings'
 };
 
 // Subscribers for change notifications
@@ -114,6 +115,28 @@ export const dataStore = {
         notifySubscribers(KEYS.TAG_METADATA, metadata);
     },
 
+    // ==================== Settings ====================
+
+    /**
+     * Get settings
+     * @returns {Promise<Object>} Settings object (e.g., { geminiApiKey: string })
+     */
+    async getSettings() {
+        const data = localStorage.getItem(KEYS.SETTINGS);
+        return data ? JSON.parse(data) : {};
+    },
+
+    /**
+     * Set settings
+     * @param {Object} settings - Settings object
+     * @returns {Promise<void>}
+     */
+    async setSettings(settings) {
+        const json = JSON.stringify(settings);
+        localStorage.setItem(KEYS.SETTINGS, json);
+        notifySubscribers(KEYS.SETTINGS, settings);
+    },
+
     // ==================== Utility ====================
 
     /**
@@ -124,11 +147,13 @@ export const dataStore = {
         localStorage.removeItem(KEYS.VIDEOS);
         localStorage.removeItem(KEYS.TAGS);
         localStorage.removeItem(KEYS.TAG_METADATA);
+        localStorage.removeItem(KEYS.SETTINGS);
 
         // Notify subscribers of all changes
         notifySubscribers(KEYS.VIDEOS, []);
         notifySubscribers(KEYS.TAGS, {});
         notifySubscribers(KEYS.TAG_METADATA, {});
+        notifySubscribers(KEYS.SETTINGS, {});
     },
 
     // ==================== Observer Pattern ====================

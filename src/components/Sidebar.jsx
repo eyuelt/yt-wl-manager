@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useVideoContext } from '../context/VideoContext';
-import { Tag, Hash, Database } from 'lucide-react';
+import { Tag, Hash, Database, Settings as SettingsIcon } from 'lucide-react';
 import DataViewer from './DataViewer';
+import Settings from './Settings';
 import ScrollView from './ScrollView';
 
 const Sidebar = () => {
     const { allTags, selectedCategory, setSelectedCategory, videos, tags, updateTagColor, getTagColor, resetToWlJson } = useVideoContext();
     const [isDataViewerOpen, setIsDataViewerOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     const archivedCount = videos.filter(v => v.archived).length;
     const unarchivedCount = videos.filter(v => !v.archived).length;
@@ -127,7 +129,14 @@ const Sidebar = () => {
             </ScrollView>
 
 
-            <div className="p-4 border-t border-gray-800">
+            <div className="p-4 border-t border-gray-800 space-y-2">
+                <button
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors font-medium"
+                >
+                    <SettingsIcon size={18} />
+                    Settings
+                </button>
                 <button
                     onClick={() => setIsDataViewerOpen(true)}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors font-medium"
@@ -137,6 +146,10 @@ const Sidebar = () => {
                 </button>
             </div>
 
+            <Settings
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+            />
             <DataViewer
                 isOpen={isDataViewerOpen}
                 onClose={() => setIsDataViewerOpen(false)}

@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import wlData from '../../wl.json';
 import { autoTag } from '../utils/autoTag';
+import { geminiTag } from '../utils/geminiTag';
 import dataStore from '../utils/dataStore';
 import Toast from '../components/Toast';
 
@@ -77,6 +78,7 @@ export const VideoProvider = ({ children }) => {
         }
 
         // Process truly new videos (not in existing videos)
+        const newVideosList = [];
         for (const [videoId, newVideo] of newVideosMap) {
             updatedVideos.push({
                 ...newVideo,
@@ -86,7 +88,10 @@ export const VideoProvider = ({ children }) => {
                 // playlistIndex comes from newVideo
             });
 
-            // Auto-tag new videos
+            // Collect new videos for tagging
+            newVideosList.push({ videoId, newVideo });
+
+            // Auto-tag new videos (will be enhanced with Gemini if API key available)
             const autoTags = autoTag(newVideo);
             if (autoTags.length > 0) {
                 updatedTags[videoId] = autoTags;
@@ -94,7 +99,95 @@ export const VideoProvider = ({ children }) => {
             }
         }
 
-        return { updatedVideos, updatedTags, newAllTags };
+        // Return new videos list for Gemini tagging
+        return { updatedVideos, updatedTags, newAllTags, newVideosList };
+
+    };
+
+    // Helper function to tag new videos with Gemini (async, non-blocking)
+    const tagNewVideosWithGemini = async (newVideosList, currentTags) => {
+        try {
+            const settings = await dataStore.getSettings();
+            if (!settings?.geminiApiKey) {
+                console.log('No Gemini API key configured, skipping AI tagging');
+                return;
+            }
+
+            console.log(`Tagging ${newVideosList.length} new videos with Gemini AI...`);
+            let totalNewTags = 0;
+
+            for (const { videoId, newVideo } of newVideosList) {
+                try {
+                    const geminiTags = await geminiTag(newVideo, settings.geminiApiKey);
+                    if (geminiTags.length > 0) {
+                        // Add Gemini tags to existing tags
+                        const existingTags = currentTags[videoId] || [];
+                        const combinedTags = [...new Set([...existingTags, ...geminiTags])];
+
+                        currentTags[videoId] = combinedTags;
+                        totalNewTags += geminiTags.length;
+                    }
+
+                    // Small delay to avoid rate limiting
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (error) {
+                    console.error(`Failed to tag video ${videoId} with Gemini:`, error);
+                }
+            }
+
+            // Update tags in storage
+            await dataStore.setTags(currentTags);
+            setTags({ ...currentTags });
+
+            // Update allTags
+            const newAllTags = new Set();
+            Object.values(currentTags).forEach(videoTags => {
+                videoTags.forEach(tag => newAllTags.add(tag));
+            });
+            setAllTags(newAllTags);
+
+            if (totalNewTags > 0) {
+                console.log(`Added ${totalNewTags} AI-generated tags to ${newVideosList.length} videos`);
+                showToast(`Added ${totalNewTags} AI-generated tags`, 'success');
+            }
+        } catch (error) {
+            console.error('Error in tagNewVideosWithGemini:', error);
+        }
+    };
+
+    // Bulk re-tag selected videos with Gemini
+    const retagSelectedWithGemini = async () => {
+        if (selectedVideos.size === 0) return;
+
+        const settings = await dataStore.getSettings();
+        if (!settings?.geminiApiKey) {
+            showToast('Please configure Gemini API key in Settings', 'error');
+            return;
+        }
+
+        const selectedVideoList = videos.filter(v => selectedVideos.has(v.id));
+        let totalNewTags = 0;
+
+        showToast(`Re-tagging ${selectedVideoList.length} videos with AI...`, 'success');
+
+        for (const video of selectedVideoList) {
+            try {
+                const newTags = await geminiTag(video, settings.geminiApiKey);
+                for (const tag of newTags) {
+                    await addTag(video.id, tag);
+                }
+                totalNewTags += newTags.length;
+
+                // Small delay to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 100));
+            } catch (error) {
+                console.error(`Failed to re-tag video ${video.id}:`, error);
+            }
+        }
+
+        clearSelection();
+        setSelectionMode(false);
+        showToast(`Added ${totalNewTags} AI-generated tags to ${selectedVideoList.length} videos`);
     };
 
     useEffect(() => {
@@ -166,7 +259,7 @@ export const VideoProvider = ({ children }) => {
                 console.log('Received synced videos:', newVideos.length, 'syncComplete:', syncComplete);
 
                 // Perform delta sync
-                const { updatedVideos, updatedTags, newAllTags } = await performDeltaSync(
+                const { updatedVideos, updatedTags, newAllTags, newVideosList } = await performDeltaSync(
                     videos,
                     tags,
                     newVideos,
@@ -179,6 +272,11 @@ export const VideoProvider = ({ children }) => {
                 setAllTags(newAllTags);
                 await dataStore.setVideos(updatedVideos);
                 await dataStore.setTags(updatedTags);
+
+                // Async Gemini tagging for new videos (don't block sync completion)
+                if (newVideosList && newVideosList.length > 0) {
+                    tagNewVideosWithGemini(newVideosList, updatedTags);
+                }
 
                 console.log(`Sync complete: ${updatedVideos.length} total videos (${updatedVideos.filter(v => v.archived).length} archived)`);
             }
@@ -288,7 +386,7 @@ export const VideoProvider = ({ children }) => {
                             console.log('Received synced videos from extension:', newVideos.length, 'syncComplete:', syncComplete);
 
                             // Perform delta sync
-                            const { updatedVideos, updatedTags, newAllTags } = await performDeltaSync(
+                            const { updatedVideos, updatedTags, newAllTags, newVideosList } = await performDeltaSync(
                                 videos,
                                 tags,
                                 newVideos,
@@ -301,6 +399,11 @@ export const VideoProvider = ({ children }) => {
                             setAllTags(newAllTags);
                             await dataStore.setVideos(updatedVideos);
                             await dataStore.setTags(updatedTags);
+
+                            // Async Gemini tagging for new videos (don't block sync completion)
+                            if (newVideosList && newVideosList.length > 0) {
+                                tagNewVideosWithGemini(newVideosList, updatedTags);
+                            }
 
                             const archivedCount = updatedVideos.filter(v => v.archived).length;
                             console.log(`Sync complete: ${updatedVideos.length} total videos (${archivedCount} archived)`);
@@ -595,6 +698,7 @@ export const VideoProvider = ({ children }) => {
             archiveSelected,
             deleteSelected,
             unarchiveSelected,
+            retagSelectedWithGemini,
             showToast
         }}>
             {children}
