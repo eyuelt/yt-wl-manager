@@ -7,6 +7,7 @@ import { useVideoContext } from '../context/VideoContext';
 const Settings = ({ isOpen, onClose }) => {
     const { showToast } = useVideoContext();
     const [geminiApiKey, setGeminiApiKey] = useState('');
+    const [extensionId, setExtensionId] = useState('');
     const [showApiKey, setShowApiKey] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -16,6 +17,7 @@ const Settings = ({ isOpen, onClose }) => {
         const loadSettings = async () => {
             const settings = await dataStore.getSettings();
             setGeminiApiKey(settings.geminiApiKey || '');
+            setExtensionId(settings.extensionId || '');
         };
 
         loadSettings();
@@ -27,7 +29,8 @@ const Settings = ({ isOpen, onClose }) => {
         setIsSaving(true);
         try {
             await dataStore.setSettings({
-                geminiApiKey: geminiApiKey.trim()
+                geminiApiKey: geminiApiKey.trim(),
+                extensionId: extensionId.trim()
             });
             showToast('Settings saved successfully!');
             onClose();
@@ -80,6 +83,11 @@ const Settings = ({ isOpen, onClose }) => {
                                 onKeyDown={handleKeyDown}
                                 placeholder="Enter your Gemini API key"
                                 className="w-full px-4 py-3 pr-12 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                                autoComplete="off"
+                                name="gemini_api_key_field"
+                                data-1p-ignore="true"
+                                data-lpignore="true"
+                                data-form-type="other"
                             />
                             <button
                                 type="button"
@@ -102,6 +110,26 @@ const Settings = ({ isOpen, onClose }) => {
                         </p>
                         <p className="mt-2 text-sm text-gray-500">
                             Your API key is stored locally in your browser and is only used to call the Gemini API for AI-powered video tagging.
+                        </p>
+                    </div>
+
+                    {/* Extension ID Section */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Chrome Extension ID
+                        </label>
+                        <input
+                            type="text"
+                            value={extensionId}
+                            onChange={(e) => setExtensionId(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder="Enter your Chrome extension ID"
+                            className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                        />
+                        <p className="mt-2 text-sm text-gray-400">
+                            The extension ID can be found in{' '}
+                            <code className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300">chrome://extensions</code>
+                            {' '}when Developer Mode is enabled.
                         </p>
                     </div>
 

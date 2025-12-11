@@ -20,6 +20,7 @@ export const VideoProvider = ({ children }) => {
     const [selectedVideos, setSelectedVideos] = useState(new Set());
     const [lastSelectedIndex, setLastSelectedIndex] = useState(null);
     const [toasts, setToasts] = useState([]);
+    const [hasExtensionId, setHasExtensionId] = useState(true); // Assume true initially to avoid flash
 
     // Refs to store sync operation IDs for cancellation
     const syncIntervalRef = useRef(null);
@@ -251,6 +252,10 @@ export const VideoProvider = ({ children }) => {
             }
 
             setTagMetadata(savedMetadata);
+
+            // Check if extension ID is configured
+            const settings = await dataStore.getSettings();
+            setHasExtensionId(!!settings.extensionId && settings.extensionId.trim() !== '');
         };
 
         loadInitialData();
@@ -300,6 +305,9 @@ export const VideoProvider = ({ children }) => {
                 setAllTags(newAllTags);
             } else if (key === dataStore.KEYS.TAG_METADATA && value) {
                 setTagMetadata(value);
+            } else if (key === dataStore.KEYS.SETTINGS) {
+                const settings = await dataStore.getSettings();
+                setHasExtensionId(!!settings.extensionId && settings.extensionId.trim() !== '');
             }
         });
 
@@ -332,8 +340,15 @@ export const VideoProvider = ({ children }) => {
     };
 
     const syncVideos = async () => {
-        // IMPORTANT: Replace this with your actual extension ID from chrome://extensions/
-        const EXTENSION_ID = 'aiokgdfhinicjhknkhadpppmgmbnlhap';  // TODO(eyuel)
+        // Get extension ID from settings
+        const settings = await dataStore.getSettings();
+        const EXTENSION_ID = settings.extensionId;
+
+        if (!EXTENSION_ID) {
+            showToast('Please configure your Chrome Extension ID in Settings', 'error');
+            setIsSyncing(false);
+            return;
+        }
 
         // Set syncing state
         setIsSyncing(true);
@@ -718,6 +733,7 @@ export const VideoProvider = ({ children }) => {
             syncVideos,
             cancelSync,
             isSyncing,
+            hasExtensionId,
             searchQuery,
             setSearchQuery,
             selectionMode,

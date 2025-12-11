@@ -4,7 +4,7 @@ import { useVideoContext } from '../context/VideoContext';
 import SearchBar from './SearchBar';
 
 const VideoHeader = () => {
-    const { selectionMode, toggleSelectionMode, syncVideos, cancelSync, isSyncing } = useVideoContext();
+    const { selectionMode, toggleSelectionMode, syncVideos, cancelSync, isSyncing, hasExtensionId } = useVideoContext();
 
     return (
         <div className="flex-none p-6 pb-4 border-b border-gray-800">
@@ -24,9 +24,13 @@ const VideoHeader = () => {
                     </button>
                     <button
                         onClick={isSyncing ? cancelSync : syncVideos}
+                        disabled={!hasExtensionId && !isSyncing}
+                        title={!hasExtensionId && !isSyncing ? 'Please configure Chrome Extension ID in Settings' : ''}
                         className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
                             isSyncing
                                 ? 'bg-orange-600 hover:bg-orange-700'
+                                : !hasExtensionId
+                                ? 'bg-gray-600 cursor-not-allowed opacity-50'
                                 : 'bg-red-600 hover:bg-red-700'
                         } text-white`}
                     >

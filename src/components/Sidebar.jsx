@@ -104,7 +104,7 @@ const Sidebar = () => {
                                         <span className="truncate flex-1">
                                             {category}
                                         </span>
-                                        <span className="text-xs opacity-70 flex-shrink-0">
+                                        <span className={`text-xs opacity-70 flex-shrink-0 transition-opacity ${!isSystemCategory ? 'group-hover:opacity-0' : ''}`}>
                                             {count}
                                         </span>
                                     </div>

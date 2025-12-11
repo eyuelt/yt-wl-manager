@@ -119,7 +119,7 @@ export const dataStore = {
 
     /**
      * Get settings
-     * @returns {Promise<Object>} Settings object (e.g., { geminiApiKey: string })
+     * @returns {Promise<Object>} Settings object (e.g., { geminiApiKey: string, extensionId: string })
      */
     async getSettings() {
         const data = localStorage.getItem(KEYS.SETTINGS);
@@ -147,13 +147,14 @@ export const dataStore = {
         localStorage.removeItem(KEYS.VIDEOS);
         localStorage.removeItem(KEYS.TAGS);
         localStorage.removeItem(KEYS.TAG_METADATA);
-        localStorage.removeItem(KEYS.SETTINGS);
+        // Do not remove SETTINGS
+        // localStorage.removeItem(KEYS.SETTINGS);
 
         // Notify subscribers of all changes
         notifySubscribers(KEYS.VIDEOS, []);
         notifySubscribers(KEYS.TAGS, {});
         notifySubscribers(KEYS.TAG_METADATA, {});
-        notifySubscribers(KEYS.SETTINGS, {});
+        // Do not notify for SETTINGS as it hasn't changed
     },
 
     // ==================== Observer Pattern ====================
