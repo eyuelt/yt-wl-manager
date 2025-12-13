@@ -10,6 +10,7 @@ const Settings = ({ isOpen, onClose }) => {
     const [extensionId, setExtensionId] = useState('');
     const [showApiKey, setShowApiKey] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [debugMode, setDebugMode] = useState(false);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -18,6 +19,7 @@ const Settings = ({ isOpen, onClose }) => {
             const settings = await dataStore.getSettings();
             setGeminiApiKey(settings.geminiApiKey || '');
             setExtensionId(settings.extensionId || '');
+            setDebugMode(settings.debugMode || false);
         };
 
         loadSettings();
@@ -30,7 +32,8 @@ const Settings = ({ isOpen, onClose }) => {
         try {
             await dataStore.setSettings({
                 geminiApiKey: geminiApiKey.trim(),
-                extensionId: extensionId.trim()
+                extensionId: extensionId.trim(),
+                debugMode: debugMode
             });
             showToast('Settings saved successfully!');
             onClose();
@@ -131,6 +134,24 @@ const Settings = ({ isOpen, onClose }) => {
                             The extension ID can be found in{' '}
                             <code className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300">chrome://extensions</code>
                             {' '}when Developer Mode is enabled.
+                        </p>
+                    </div>
+
+                    {/* Debug Mode Section */}
+                    <div>
+                        <label className="flex items-center gap-3 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={debugMode}
+                                onChange={(e) => setDebugMode(e.target.checked)}
+                                className="w-5 h-5 bg-gray-800 border border-gray-700 rounded focus:ring-2 focus:ring-red-600 text-red-600 cursor-pointer"
+                            />
+                            <span className="text-sm font-medium text-gray-300">
+                                Enable Debug Mode
+                            </span>
+                        </label>
+                        <p className="mt-2 text-sm text-gray-400 ml-8">
+                            Shows video IDs in the bottom right corner of each video card for debugging purposes.
                         </p>
                     </div>
                 </div>

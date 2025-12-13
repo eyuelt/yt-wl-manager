@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Trash2 } from 'lucide-react';
+import { X, Trash2, Search } from 'lucide-react';
 import { JsonViewer } from '@textea/json-viewer';
 import dataStore from '../utils/dataStore';
 import { useVideoContext } from '../context/VideoContext';
@@ -11,6 +11,7 @@ const DataViewer = ({ isOpen, onClose }) => {
     const [videosData, setVideosData] = useState([]);
     const [tagsData, setTagsData] = useState({});
     const [metadataData, setMetadataData] = useState({});
+    const [videoIdFilter, setVideoIdFilter] = useState('');
 
     useEffect(() => {
         if (!isOpen) return;
@@ -42,6 +43,28 @@ const DataViewer = ({ isOpen, onClose }) => {
             unsubscribe();
         };
     }, [isOpen]);
+
+    // Filter videos by video ID
+    const filteredVideosData = useMemo(() => {
+        if (!videoIdFilter.trim()) return videosData;
+        const filterLower = videoIdFilter.toLowerCase();
+        return videosData.filter(video =>
+            video.id && video.id.toLowerCase().includes(filterLower)
+        );
+    }, [videosData, videoIdFilter]);
+
+    // Filter tags by video ID
+    const filteredTagsData = useMemo(() => {
+        if (!videoIdFilter.trim()) return tagsData;
+        const filterLower = videoIdFilter.toLowerCase();
+        const filtered = {};
+        Object.keys(tagsData).forEach(videoId => {
+            if (videoId.toLowerCase().includes(filterLower)) {
+                filtered[videoId] = tagsData[videoId];
+            }
+        });
+        return filtered;
+    }, [tagsData, videoIdFilter]);
 
     if (!isOpen) return null;
 
@@ -110,26 +133,66 @@ const DataViewer = ({ isOpen, onClose }) => {
                 {/* Content */}
                 <div className="flex-1 overflow-auto p-4 bg-gray-950 rounded-lg">
                     {activeTab === 'videos' && (
-                        <JsonViewer
-                            value={videosData}
-                            theme="dark"
-                            defaultInspectDepth={1}
-                            displayDataTypes={false}
-                            enableClipboard={true}
-                            quotesOnKeys={false}
-                            rootName="videos"
-                        />
+                        <div className="space-y-4">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                                <input
+                                    type="text"
+                                    value={videoIdFilter}
+                                    onChange={(e) => setVideoIdFilter(e.target.value)}
+                                    placeholder="Filter by video ID..."
+                                    className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent text-sm"
+                                />
+                                {videoIdFilter && (
+                                    <button
+                                        onClick={() => setVideoIdFilter('')}
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                )}
+                            </div>
+                            <JsonViewer
+                                value={filteredVideosData}
+                                theme="dark"
+                                defaultInspectDepth={1}
+                                displayDataTypes={false}
+                                enableClipboard={true}
+                                quotesOnKeys={false}
+                                rootName="videos"
+                            />
+                        </div>
                     )}
                     {activeTab === 'tags' && (
-                        <JsonViewer
-                            value={tagsData}
-                            theme="dark"
-                            defaultInspectDepth={2}
-                            displayDataTypes={false}
-                            enableClipboard={true}
-                            quotesOnKeys={false}
-                            rootName="tags"
-                        />
+                        <div className="space-y-4">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                                <input
+                                    type="text"
+                                    value={videoIdFilter}
+                                    onChange={(e) => setVideoIdFilter(e.target.value)}
+                                    placeholder="Filter by video ID..."
+                                    className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent text-sm"
+                                />
+                                {videoIdFilter && (
+                                    <button
+                                        onClick={() => setVideoIdFilter('')}
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                )}
+                            </div>
+                            <JsonViewer
+                                value={filteredTagsData}
+                                theme="dark"
+                                defaultInspectDepth={2}
+                                displayDataTypes={false}
+                                enableClipboard={true}
+                                quotesOnKeys={false}
+                                rootName="tags"
+                            />
+                        </div>
                     )}
                     {activeTab === 'metadata' && (
                         <JsonViewer

@@ -1,9 +1,9 @@
 {
-  "name": "yt-wl-browser",
+  "name": "yt-wl-manager",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://eyuelt.github.io/yt-wl-browser",
+  "homepage": "https://eyuelt.github.io/yt-wl-manager",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

@@ -6,14 +6,16 @@
  */
 
 const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const MAX_BATCH_SIZE = 250;
 
 /**
  * Generate tags for a video using Gemini AI
  * @param {Object} video - Video object with id, url, title, channel
  * @param {string} apiKey - User's Gemini API key
+ * @param {string[]} existingTags - Array of existing tags to consider (optional)
  * @returns {Promise<string[]>} Array of generated tags (empty array on error)
  */
-export async function geminiTag(video, apiKey) {
+export async function geminiTag(video, apiKey, existingTags = []) {
     if (!apiKey) {
         console.warn('No Gemini API key provided');
         return [];
@@ -25,7 +27,7 @@ export async function geminiTag(video, apiKey) {
     }
 
     try {
-        const prompt = buildPrompt(video);
+        const prompt = buildPrompt(video, existingTags);
         const response = await callGeminiAPI(prompt, apiKey);
         const tags = parseGeminiResponse(response);
 
@@ -41,9 +43,10 @@ export async function geminiTag(video, apiKey) {
  * Batch tag multiple videos in a single API call
  * @param {Array} videos - Array of video objects
  * @param {string} apiKey - User's Gemini API key
+ * @param {string[]} existingTags - Array of existing tags to consider (optional)
  * @returns {Promise<Object>} Map of video IDs to tags
  */
-export async function geminiBatchTag(videos, apiKey) {
+export async function geminiBatchTag(videos, apiKey, existingTags = []) {
     if (!apiKey) {
         console.warn('No Gemini API key provided');
         return {};
@@ -54,7 +57,7 @@ export async function geminiBatchTag(videos, apiKey) {
     }
 
     try {
-        const prompt = buildBatchPrompt(videos);
+        const prompt = buildBatchPrompt(videos, existingTags);
         console.log('=== GEMINI PROMPT ===');
         console.log(prompt);
         console.log('====================');
@@ -77,43 +80,149 @@ export async function geminiBatchTag(videos, apiKey) {
 }
 
 /**
+ * Batch tag videos with automatic chunking, parallel requests, and sequential processing
+ * @param {Array} videos - Array of video objects
+ * @param {string} apiKey - User's Gemini API key
+ * @param {string[]} existingTags - Array of existing tags to consider
+ * @param {Function} onProgress - Callback for progress updates: ({ totalBatches, completedBatches }) => void
+ * @returns {Promise<Object>} Map of video IDs to tags
+ */
+export async function geminiBatchTagWithProgress(videos, apiKey, existingTags = [], onProgress = () => {}) {
+    if (!apiKey) {
+        console.warn('No Gemini API key provided');
+        return {};
+    }
+
+    if (!videos || videos.length === 0) {
+        return {};
+    }
+
+    // Split videos into batches of MAX_BATCH_SIZE
+    const batches = [];
+    for (let i = 0; i < videos.length; i += MAX_BATCH_SIZE) {
+        batches.push(videos.slice(i, i + MAX_BATCH_SIZE));
+    }
+
+    const totalBatches = batches.length;
+    let completedBatches = 0;
+
+    console.log(`Starting batch tagging: ${videos.length} videos in ${totalBatches} batches`);
+    onProgress({ totalBatches, completedBatches });
+
+    // Send all requests in parallel
+    const batchPromises = batches.map((batch, index) => {
+        const prompt = buildBatchPrompt(batch, existingTags);
+        console.log(`=== GEMINI BATCH ${index + 1}/${totalBatches} PROMPT ===`);
+        console.log(`Batch size: ${batch.length} videos`);
+
+        return callGeminiAPI(prompt, apiKey)
+            .then(response => ({ response, batch, index, error: null }))
+            .catch(error => ({ response: null, batch, index, error }));
+    });
+
+    // Process responses one at a time as they complete
+    const combinedTagMap = {};
+
+    // Wait for all requests to complete, then process sequentially
+    const results = await Promise.all(batchPromises);
+
+    // Sort by index to process in order
+    results.sort((a, b) => a.index - b.index);
+
+    for (const { response, batch, index, error } of results) {
+        if (error) {
+            console.error(`Error in batch ${index + 1}:`, error);
+        } else if (response) {
+            const text = response?.candidates?.[0]?.content?.parts?.[0]?.text;
+            console.log(`=== GEMINI BATCH ${index + 1}/${totalBatches} RESPONSE ===`);
+            console.log(text);
+
+            const tagMap = parseBatchResponse(response, batch);
+            Object.assign(combinedTagMap, tagMap);
+        }
+
+        completedBatches++;
+        onProgress({ totalBatches, completedBatches });
+    }
+
+    console.log(`Batch tagging complete: ${Object.keys(combinedTagMap).length} videos tagged`);
+    return combinedTagMap;
+}
+
+/**
  * Build the prompt for Gemini API (single video)
  * @param {Object} video - Video object
+ * @param {string[]} existingTags - Array of existing tags to consider
  * @returns {string} Formatted prompt
  */
-function buildPrompt(video) {
-    return `Given this YouTube video:
+function buildPrompt(video, existingTags = []) {
+    let prompt = `Given this YouTube video:
 - URL: ${video.url}
 - Title: ${video.title}
 - Channel: ${video.channel || 'Unknown'}
 
-Choose ONE broad category tag for this video. Use your knowledge of YouTube content.
-Return ONLY a JSON array with a single tag string, e.g. ["Tech"] or ["Music"] or ["Gaming"]
+`;
+
+    if (existingTags.length > 0) {
+        prompt += `Existing categories in use: ${existingTags.join(', ')}
+
+Choose ONE category tag for this video. If the video fits well into one of the existing categories above, use that category. If none of the existing categories are a great fit, create a new appropriate category.
+`;
+    } else {
+        prompt += `Choose ONE broad category tag for this video. Use your knowledge of YouTube content.
+`;
+    }
+
+    prompt += `Return ONLY a JSON array with a single tag string, e.g. ["Tech"] or ["Music"] or ["Gaming"]
 Use broad, general categories. Avoid hyper-specific tags.`;
+
+    return prompt;
 }
 
 /**
  * Build batch prompt for multiple videos
  * @param {Array} videos - Array of video objects
+ * @param {string[]} existingTags - Array of existing tags to consider
  * @returns {string} Formatted prompt
  */
-function buildBatchPrompt(videos) {
+function buildBatchPrompt(videos, existingTags = []) {
     const videoList = videos.map((v, i) =>
         `${i + 1}. Title: "${v.title}" | Channel: ${v.channel || 'Unknown'}`
     ).join('\n');
 
-    return `Tag these ${videos.length} YouTube videos with ONE category tag each.
+    let prompt = `Tag ${videos.length} YouTube videos with ONE category tag each.
 
-${videoList}
+`;
 
-Guidelines:
+    if (existingTags.length > 0) {
+        prompt += `Existing categories in use: ${existingTags.join(', ')}
+
+`;
+    }
+
+    prompt += `Guidelines:
 - Choose descriptive category tags that accurately represent the video content
-- Categories should be somewhat broad but still meaningful (e.g., "Programming", "Music Production", "Gaming", "Food & Cooking", "Science")
-- Create new categories when videos don't fit existing ones - don't force videos into unrelated categories
+- Categories should be somewhat broad but still meaningful (e.g., "Programming", "Music Production", "Gaming", "Food & Cooking", "Science")`;
+
+    if (existingTags.length > 0) {
+        prompt += `
+- PREFER using existing categories when videos fit well into them
+- ONLY create new categories when none of the existing categories are a great fit - don't force videos into unrelated categories`;
+    } else {
+        prompt += `
+- Create new categories when videos don't fit existing ones - don't force videos into unrelated categories`;
+    }
+
+    prompt += `
 - Try to reuse similar categories when appropriate, but prioritize accuracy over minimizing tag count
 - Each video gets exactly ONE tag
 
-Return ONLY a JSON array of ${videos.length} tag strings in the same order, e.g. ["Programming", "Music Production", "Gaming", "Food & Cooking"]`;
+Return ONLY a JSON array of ${videos.length} tag strings in the same order as the videos below.
+
+Videos to tag:
+${videoList}`;
+
+    return prompt;
 }
 
 /**

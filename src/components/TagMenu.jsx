@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { MoreVertical, Palette, GitMerge, Trash2 } from 'lucide-react';
+import { MoreVertical, Palette, GitMerge, Trash2, Edit3 } from 'lucide-react';
 
 const PRESET_COLORS = [
     '#EF4444', // Red
@@ -14,7 +14,7 @@ const PRESET_COLORS = [
     '#EC4899', // Pink
 ];
 
-const TagMenu = ({ tag, color, onColorChange, onMergeClick, onDeleteClick }) => {
+const TagMenu = ({ tag, color, onColorChange, onMergeClick, onRenameClick, onDeleteClick }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [showCustomPicker, setShowCustomPicker] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -53,6 +53,11 @@ const TagMenu = ({ tag, color, onColorChange, onMergeClick, onDeleteClick }) => 
 
     const handleColorChange = (e) => {
         onColorChange(tag, e.target.value);
+    };
+
+    const handleRenameClick = () => {
+        setIsOpen(false);
+        onRenameClick(tag);
     };
 
     const handleMergeClick = () => {
@@ -137,6 +142,20 @@ const TagMenu = ({ tag, color, onColorChange, onMergeClick, onDeleteClick }) => 
                         </button>
                     </>
                 )}
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-700" />
+
+            {/* Rename Tag */}
+            <div className="p-2">
+                <button
+                    onClick={handleRenameClick}
+                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-700 rounded transition-colors text-left"
+                >
+                    <Edit3 size={16} className="text-gray-400" />
+                    <span className="text-white text-sm">Rename Tag</span>
+                </button>
             </div>
 
             {/* Divider */}

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useVideoContext } from '../context/VideoContext';
-import { Plus, X, ExternalLink, Check } from 'lucide-react';
+import { Plus, X, ExternalLink, Check, Copy } from 'lucide-react';
 
 const VideoCard = ({ video, index }) => {
-    const { tags, addTag, removeTag, getTagColor, selectionMode, selectedVideos, toggleVideoSelection, toggleSelectionMode } = useVideoContext();
+    const { tags, addTag, removeTag, getTagColor, selectionMode, selectedVideos, toggleVideoSelection, toggleSelectionMode, debugMode, showToast } = useVideoContext();
     const [isAddingTag, setIsAddingTag] = useState(false);
     const [newTag, setNewTag] = useState('');
 
@@ -42,6 +42,17 @@ const VideoCard = ({ video, index }) => {
             addTag(video.id, newTag.trim());
             setNewTag('');
             setIsAddingTag(false);
+        }
+    };
+
+    const handleCopyVideoId = async (e) => {
+        e.stopPropagation();
+        try {
+            await navigator.clipboard.writeText(video.id);
+            showToast('Video ID copied to clipboard');
+        } catch (err) {
+            console.error('Failed to copy video ID:', err);
+            showToast('Failed to copy video ID', 'error');
         }
     };
 
@@ -101,7 +112,7 @@ const VideoCard = ({ video, index }) => {
                 </a>
             </div>
 
-            <div className="p-4 flex-1 flex flex-col">
+            <div className="p-4 flex-1 flex flex-col relative">
                 <h3 className="text-white font-semibold text-lg leading-tight mb-2 select-text truncate" title={video.title}>
                     {video.title}
                 </h3>
@@ -159,6 +170,22 @@ const VideoCard = ({ video, index }) => {
                         </form>
                     )}
                 </div>
+
+                {debugMode && (
+                    <div
+                        className="absolute bottom-2 right-2 flex items-center gap-1 text-gray-500 text-xs font-mono"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <span className="select-text">{video.id}</span>
+                        <button
+                            onClick={handleCopyVideoId}
+                            className="hover:text-gray-300 transition-colors"
+                            title="Copy video ID"
+                        >
+                            <Copy size={12} />
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

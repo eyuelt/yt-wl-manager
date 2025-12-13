@@ -5,14 +5,17 @@ import DataViewer from './DataViewer';
 import Settings from './Settings';
 import TagMenu from './TagMenu';
 import MergeTagModal from './MergeTagModal';
+import RenameTagModal from './RenameTagModal';
 import ScrollView from './ScrollView';
 
 const Sidebar = () => {
-    const { allTags, selectedCategory, setSelectedCategory, videos, tags, updateTagColor, getTagColor, mergeTag, deleteTag } = useVideoContext();
+    const { allTags, selectedCategory, setSelectedCategory, videos, tags, updateTagColor, getTagColor, renameTag, mergeTag, deleteTag } = useVideoContext();
     const [isDataViewerOpen, setIsDataViewerOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
     const [tagToMerge, setTagToMerge] = useState(null);
+    const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+    const [tagToRename, setTagToRename] = useState(null);
 
     const archivedCount = videos.filter(v => v.archived).length;
     const unarchivedCount = videos.filter(v => !v.archived).length;
@@ -115,6 +118,10 @@ const Sidebar = () => {
                                         tag={category}
                                         color={tagColor}
                                         onColorChange={updateTagColor}
+                                        onRenameClick={(tag) => {
+                                            setTagToRename(tag);
+                                            setIsRenameModalOpen(true);
+                                        }}
                                         onMergeClick={(tag) => {
                                             setTagToMerge(tag);
                                             setIsMergeModalOpen(true);
@@ -164,6 +171,15 @@ const Sidebar = () => {
                 allTags={allTags}
                 onMerge={mergeTag}
                 getTagColor={getTagColor}
+            />
+            <RenameTagModal
+                isOpen={isRenameModalOpen}
+                onClose={() => {
+                    setIsRenameModalOpen(false);
+                    setTagToRename(null);
+                }}
+                tag={tagToRename}
+                onRename={renameTag}
             />
         </div>
     );
