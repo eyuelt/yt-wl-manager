@@ -107,9 +107,10 @@ const Settings = ({ isOpen, onClose }) => {
                             >
                                 Google AI Studio
                             </a>
+                            . Enables AI-powered tagging to automatically categorize videos based on title, channel, and content.
                         </p>
                         <p className="mt-2 text-sm text-gray-500">
-                            Your API key is stored locally in your browser and is only used to call the Gemini API for AI-powered video tagging.
+                            Your API key is stored locally in your browser and is only used to call the Gemini API. AI tags are added to existing tags during sync or when bulk re-tagging selected videos.
                         </p>
                     </div>
 
@@ -131,17 +132,6 @@ const Settings = ({ isOpen, onClose }) => {
                             <code className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300">chrome://extensions</code>
                             {' '}when Developer Mode is enabled.
                         </p>
-                    </div>
-
-                    {/* Info Box */}
-                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-                        <h3 className="text-sm font-medium text-white mb-2">About AI Tagging</h3>
-                        <ul className="text-sm text-gray-400 space-y-1 list-disc list-inside">
-                            <li>Automatically tag new videos during sync</li>
-                            <li>Bulk re-tag selected videos using AI</li>
-                            <li>Tags are generated based on video title, channel, and YouTube knowledge</li>
-                            <li>AI-generated tags are added to existing tags (not replaced)</li>
-                        </ul>
                     </div>
                 </div>
 

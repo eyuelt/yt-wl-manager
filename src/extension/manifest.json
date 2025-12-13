@@ -26,12 +26,19 @@
         "service_worker": "background.js"
     },
     "externally_connectable": {
-        "matches": ["http://localhost:*/*", "http://127.0.0.1:*/*"]
+        "matches": [
+            "http://localhost:*/*",
+            "http://127.0.0.1:*/*"
+        ]
     },
     "web_accessible_resources": [
         {
-            "resources": ["inject.js"],
-            "matches": ["https://www.youtube.com/*"]
+            "resources": [
+                "inject.js"
+            ],
+            "matches": [
+                "https://www.youtube.com/*"
+            ]
         }
     ]
 }

@@ -392,7 +392,7 @@ export const VideoProvider = ({ children }) => {
             if (typeof chrome !== 'undefined' && chrome.runtime) {
                 chrome.runtime.sendMessage(
                     EXTENSION_ID,
-                    { type: 'GET_YT_WL_DATA' },
+                    { type: 'GET_AND_CLEAR_YT_WL_DATA' },
                     async (response) => {
                         if (chrome.runtime.lastError) {
                             console.warn('Extension not responding:', chrome.runtime.lastError.message);

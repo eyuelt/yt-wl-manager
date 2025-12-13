@@ -57,7 +57,7 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
         return true; // Keep the message channel open for async response
     }
 
-    if (message.type === 'GET_YT_WL_DATA') {
+    if (message.type === 'GET_AND_CLEAR_YT_WL_DATA') {
         // Retrieve and send the stored videos
         chrome.storage.local.get(['ytWatchLaterVideos', 'ytWatchLaterSyncComplete', 'ytWatchLaterTimestamp'], (result) => {
             if (result.ytWatchLaterVideos) {
@@ -69,8 +69,8 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
                     timestamp: result.ytWatchLaterTimestamp
                 });
 
-                // Clear the storage after sending (including archived IDs)
-                chrome.storage.local.remove(['ytWatchLaterVideos', 'ytWatchLaterSyncComplete', 'ytWatchLaterTimestamp', 'archivedVideoIds', 'archivedIdsTimestamp']);
+                // Clear the sync data after sending
+                chrome.storage.local.remove(['ytWatchLaterVideos', 'ytWatchLaterSyncComplete', 'ytWatchLaterTimestamp']);
             } else {
                 sendResponse({ success: false, message: 'No data available' });
             }
