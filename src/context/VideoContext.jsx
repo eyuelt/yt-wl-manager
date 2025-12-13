@@ -553,6 +553,47 @@ export const VideoProvider = ({ children }) => {
         showToast(`Merged "${sourceTag}" into "${targetTag}" (${videosAffected} videos updated)`);
     };
 
+    const deleteTag = async (tagToDelete) => {
+        const newTags = { ...tags };
+        let videosAffected = 0;
+
+        // Remove the tag from all videos
+        Object.keys(newTags).forEach(videoId => {
+            if (newTags[videoId]?.includes(tagToDelete)) {
+                newTags[videoId] = newTags[videoId].filter(t => t !== tagToDelete);
+                // Clean up empty arrays
+                if (newTags[videoId].length === 0) {
+                    delete newTags[videoId];
+                }
+                videosAffected++;
+            }
+        });
+
+        // Update state and storage
+        setTags(newTags);
+        await dataStore.setTags(newTags);
+
+        // Update allTags (remove the deleted tag)
+        const newAllTags = new Set();
+        Object.values(newTags).forEach(videoTags => {
+            videoTags.forEach(tag => newAllTags.add(tag));
+        });
+        setAllTags(newAllTags);
+
+        // Remove tag metadata
+        const newMetadata = { ...tagMetadata };
+        delete newMetadata[tagToDelete];
+        setTagMetadata(newMetadata);
+        await dataStore.setTagMetadata(newMetadata);
+
+        // If we're currently viewing this tag, switch to "All"
+        if (selectedCategory === tagToDelete) {
+            setSelectedCategory('All');
+        }
+
+        showToast(`Deleted "${tagToDelete}" from ${videosAffected} video${videosAffected !== 1 ? 's' : ''}`);
+    };
+
     // Selection functions
     const toggleSelectionMode = () => {
         setSelectionMode(!selectionMode);
@@ -730,6 +771,7 @@ export const VideoProvider = ({ children }) => {
             updateTagColor,
             getTagColor,
             mergeTag,
+            deleteTag,
             syncVideos,
             cancelSync,
             isSyncing,

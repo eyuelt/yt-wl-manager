@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { MoreVertical, Palette, GitMerge } from 'lucide-react';
+import { MoreVertical, Palette, GitMerge, Trash2 } from 'lucide-react';
 
 const PRESET_COLORS = [
     '#EF4444', // Red
@@ -14,16 +14,21 @@ const PRESET_COLORS = [
     '#EC4899', // Pink
 ];
 
-const TagMenu = ({ tag, color, onColorChange, onMergeClick }) => {
+const TagMenu = ({ tag, color, onColorChange, onMergeClick, onDeleteClick }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [showCustomPicker, setShowCustomPicker] = useState(false);
-    const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
     const menuRef = useRef(null);
     const buttonRef = useRef(null);
 
     // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
+            // Don't close if clicking the button itself (let the button's onClick handle it)
+            if (buttonRef.current && buttonRef.current.contains(event.target)) {
+                return;
+            }
+
             if (menuRef.current && !menuRef.current.contains(event.target)) {
                 setIsOpen(false);
                 setShowCustomPicker(false);
@@ -55,13 +60,18 @@ const TagMenu = ({ tag, color, onColorChange, onMergeClick }) => {
         onMergeClick(tag);
     };
 
+    const handleDeleteClick = () => {
+        setIsOpen(false);
+        onDeleteClick(tag);
+    };
+
     const dropdownMenu = (
         <div
             ref={menuRef}
             className="fixed w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-[9999]"
             style={{
                 top: `${menuPosition.top}px`,
-                right: `${menuPosition.right}px`,
+                left: `${menuPosition.left}px`,
             }}
         >
             {/* Change Color */}
@@ -142,6 +152,20 @@ const TagMenu = ({ tag, color, onColorChange, onMergeClick }) => {
                     <span className="text-white text-sm">Merge Into...</span>
                 </button>
             </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-700" />
+
+            {/* Delete Tag */}
+            <div className="p-2">
+                <button
+                    onClick={handleDeleteClick}
+                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-red-900/50 rounded transition-colors text-left"
+                >
+                    <Trash2 size={16} className="text-red-400" />
+                    <span className="text-red-400 text-sm">Delete Tag</span>
+                </button>
+            </div>
         </div>
     );
 
@@ -154,10 +178,39 @@ const TagMenu = ({ tag, color, onColorChange, onMergeClick }) => {
                     e.stopPropagation();
                     if (!isOpen && buttonRef.current) {
                         const rect = buttonRef.current.getBoundingClientRect();
-                        setMenuPosition({
-                            top: rect.top + rect.height / 2 - 60, // Center vertically, adjust for menu height
-                            right: window.innerWidth - rect.left + 8, // 8px gap from button
-                        });
+                        const menuWidth = 192; // w-48 = 12rem = 192px
+                        const menuHeight = 300; // Approximate height (will vary with content)
+                        const gap = 8;
+                        const viewportWidth = window.innerWidth;
+                        const viewportHeight = window.innerHeight;
+
+                        // Try to position to the left of button first
+                        let left = rect.left - menuWidth - gap;
+                        let top = rect.top + rect.height / 2 - 60;
+
+                        // Check if menu would overflow on the left
+                        if (left < gap) {
+                            // Would overflow left, position to the right of button instead
+                            left = rect.right + gap;
+                        }
+
+                        // Check if still overflows on the right
+                        if (left + menuWidth > viewportWidth - gap) {
+                            // Align to right edge of viewport
+                            left = viewportWidth - menuWidth - gap;
+                        }
+
+                        // Check if menu would overflow on top
+                        if (top < gap) {
+                            top = gap;
+                        }
+
+                        // Check if menu would overflow on bottom
+                        if (top + menuHeight > viewportHeight - gap) {
+                            top = viewportHeight - menuHeight - gap;
+                        }
+
+                        setMenuPosition({ top, left });
                     }
                     setIsOpen(!isOpen);
                 }}

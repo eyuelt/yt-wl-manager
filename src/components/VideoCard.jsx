@@ -37,6 +37,7 @@ const VideoCard = ({ video, index }) => {
 
     const handleAddTag = (e) => {
         e.preventDefault();
+        e.stopPropagation();
         if (newTag.trim()) {
             addTag(video.id, newTag.trim());
             setNewTag('');
@@ -142,11 +143,12 @@ const VideoCard = ({ video, index }) => {
                     </div>
 
                     {isAddingTag && (
-                        <form onSubmit={handleAddTag} className="flex gap-2">
+                        <form onSubmit={handleAddTag} onClick={(e) => e.stopPropagation()} className="flex gap-2 mt-2">
                             <input
                                 type="text"
                                 value={newTag}
                                 onChange={(e) => setNewTag(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
                                 placeholder="New tag..."
                                 className="bg-gray-700 text-white text-xs px-2 py-1 rounded flex-1 outline-none focus:ring-1 focus:ring-blue-500"
                                 autoFocus

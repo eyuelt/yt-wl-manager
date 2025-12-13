@@ -8,7 +8,7 @@ import MergeTagModal from './MergeTagModal';
 import ScrollView from './ScrollView';
 
 const Sidebar = () => {
-    const { allTags, selectedCategory, setSelectedCategory, videos, tags, updateTagColor, getTagColor, mergeTag } = useVideoContext();
+    const { allTags, selectedCategory, setSelectedCategory, videos, tags, updateTagColor, getTagColor, mergeTag, deleteTag } = useVideoContext();
     const [isDataViewerOpen, setIsDataViewerOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
@@ -119,6 +119,7 @@ const Sidebar = () => {
                                             setTagToMerge(tag);
                                             setIsMergeModalOpen(true);
                                         }}
+                                        onDeleteClick={deleteTag}
                                     />
                                 )}
                             </div>
