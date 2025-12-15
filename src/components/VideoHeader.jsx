@@ -4,7 +4,14 @@ import { useVideoContext } from '../context/VideoContext';
 import SearchBar from './SearchBar';
 
 const VideoHeader = ({ onMenuClick }) => {
-    const { selectionMode, toggleSelectionMode, syncVideos, cancelSync, isSyncing, hasExtensionId, batchTaggingProgress } = useVideoContext();
+    const { selectionMode, toggleSelectionMode, syncVideos, cancelSync, isSyncing, hasExtensionId, extensionAvailable, isMobile, batchTaggingProgress } = useVideoContext();
+
+    const syncDisabled = isMobile || (!extensionAvailable && !isSyncing);
+    const syncTitle = isMobile
+        ? 'Sync only works on desktop with the Chrome extension'
+        : !extensionAvailable
+        ? 'Chrome extension not detected. Install the extension and configure the ID in Settings.'
+        : isSyncing ? 'Cancel sync' : 'Sync videos';
 
     return (
         <div className="flex-none p-4 sm:p-6 pb-4 border-b border-gray-800">
@@ -51,21 +58,23 @@ const VideoHeader = ({ onMenuClick }) => {
                         <CheckSquare size={20} />
                         <span className="hidden sm:inline">{selectionMode ? 'Cancel' : 'Select'}</span>
                     </button>
-                    <button
-                        onClick={isSyncing ? cancelSync : syncVideos}
-                        disabled={!hasExtensionId && !isSyncing}
-                        title={!hasExtensionId && !isSyncing ? 'Please configure Chrome Extension ID in Settings' : (isSyncing ? 'Cancel sync' : 'Sync videos')}
-                        className={`flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-3 rounded-lg font-medium transition-colors ${
-                            isSyncing
-                                ? 'bg-orange-600 hover:bg-orange-700'
-                                : !hasExtensionId
-                                ? 'bg-gray-600 cursor-not-allowed opacity-50'
-                                : 'bg-red-600 hover:bg-red-700'
-                        } text-white`}
-                    >
-                        <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />
-                        <span className="hidden sm:inline">{isSyncing ? 'Cancel' : 'Sync'}</span>
-                    </button>
+                    {!isMobile && (
+                        <button
+                            onClick={isSyncing ? cancelSync : syncVideos}
+                            disabled={syncDisabled}
+                            title={syncTitle}
+                            className={`flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-3 rounded-lg font-medium transition-colors ${
+                                isSyncing
+                                    ? 'bg-orange-600 hover:bg-orange-700'
+                                    : syncDisabled
+                                    ? 'bg-gray-600 cursor-not-allowed opacity-50'
+                                    : 'bg-red-600 hover:bg-red-700'
+                            } text-white`}
+                        >
+                            <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />
+                            <span className="hidden sm:inline">{isSyncing ? 'Cancel' : 'Sync'}</span>
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

@@ -5,7 +5,7 @@ import dataStore from '../utils/dataStore';
 import { useVideoContext } from '../context/VideoContext';
 
 const Settings = ({ isOpen, onClose }) => {
-    const { showToast } = useVideoContext();
+    const { showToast, isMobile } = useVideoContext();
     const [geminiApiKey, setGeminiApiKey] = useState('');
     const [extensionId, setExtensionId] = useState('');
     const [showApiKey, setShowApiKey] = useState(false);
@@ -118,22 +118,32 @@ const Settings = ({ isOpen, onClose }) => {
                     </div>
 
                     {/* Extension ID Section */}
-                    <div>
+                    <div className={isMobile ? 'opacity-50 pointer-events-none' : ''}>
                         <label className="block text-sm font-medium text-gray-300 mb-2">
                             Chrome Extension ID
                         </label>
+                        <p className="mb-3 text-sm text-gray-400">
+                            Required for syncing your YouTube Watch Later playlist. The extension runs in Chrome and extracts video data from YouTube.
+                        </p>
                         <input
                             type="text"
                             value={extensionId}
                             onChange={(e) => setExtensionId(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder="Enter your Chrome extension ID"
-                            className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                            disabled={isMobile}
+                            className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent disabled:cursor-not-allowed"
                         />
                         <p className="mt-2 text-sm text-gray-400">
-                            The extension ID can be found in{' '}
-                            <code className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300">chrome://extensions</code>
-                            {' '}when Developer Mode is enabled.
+                            {isMobile ? (
+                                'YouTube sync requires the Chrome extension and is only available on desktop.'
+                            ) : (
+                                <>
+                                    The extension ID can be found in{' '}
+                                    <code className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300">chrome://extensions</code>
+                                    {' '}when Developer Mode is enabled.
+                                </>
+                            )}
                         </p>
                     </div>
 

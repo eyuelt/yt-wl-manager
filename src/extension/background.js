@@ -77,4 +77,10 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
         });
         return true; // Keep the message channel open for async response
     }
+
+    if (message.type === 'PING') {
+        // Simple ping/pong to check extension availability
+        sendResponse({ success: true });
+        return true;
+    }
 });

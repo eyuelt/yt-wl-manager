@@ -2,9 +2,38 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { VideoProvider, useVideoContext } from './VideoContext';
 
+// Mock dataStore to control async data loading
+vi.mock('../utils/dataStore', () => ({
+    default: {
+        getVideos: vi.fn().mockResolvedValue([
+            { id: 'test-1', title: 'Test Video 1', addedAt: 1000 },
+            { id: 'test-2', title: 'Test Video 2', addedAt: 2000 }
+        ]),
+        getTags: vi.fn().mockResolvedValue({}),
+        getTagMetadata: vi.fn().mockResolvedValue({}),
+        getSettings: vi.fn().mockResolvedValue({ extensionId: 'test-ext-id' }),
+        setVideos: vi.fn().mockResolvedValue(),
+        setTags: vi.fn().mockResolvedValue(),
+        setTagMetadata: vi.fn().mockResolvedValue(),
+        subscribe: vi.fn().mockReturnValue(() => { }),
+        KEYS: { VIDEOS: 'videos', TAGS: 'tags', TAG_METADATA: 'tagMetadata', SETTINGS: 'settings' }
+    }
+}));
+
+// Mock Chrome runtime
+global.chrome = {
+    runtime: {
+        sendMessage: vi.fn((extId, msg, callback) => {
+            if (callback) callback({ success: true });
+        }),
+        lastError: null
+    }
+};
+
 describe('VideoContext', () => {
     beforeEach(() => {
         localStorage.clear();
+        vi.clearAllMocks();
     });
 
     it('provides initial empty video data', async () => {
@@ -12,17 +41,20 @@ describe('VideoContext', () => {
             wrapper: VideoProvider,
         });
 
+        // Wait for initial load to complete
         await waitFor(() => {
-            expect(result.current.videos).toHaveLength(0);
+            expect(result.current.videos).toHaveLength(2);
         });
     });
 
-    it('initializes with "All" category selected', () => {
+    it('initializes with "All" category selected', async () => {
         const { result } = renderHook(() => useVideoContext(), {
             wrapper: VideoProvider,
         });
 
-        expect(result.current.selectedCategory).toBe('All');
+        await waitFor(() => {
+            expect(result.current.selectedCategory).toBe('All');
+        });
     });
 
     it('shows all videos when "All" category is selected', async () => {

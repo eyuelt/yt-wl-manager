@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef, useCallback } from 'react';
 import { geminiBatchTag, geminiBatchTagWithProgress } from '../utils/geminiTag';
 import dataStore from '../utils/dataStore';
 import Toast from '../components/Toast';
@@ -20,6 +20,8 @@ export const VideoProvider = ({ children }) => {
     const [lastSelectedIndex, setLastSelectedIndex] = useState(null);
     const [toasts, setToasts] = useState([]);
     const [hasExtensionId, setHasExtensionId] = useState(true); // Assume true initially to avoid flash
+    const [extensionAvailable, setExtensionAvailable] = useState(false); // Whether extension is actually reachable
+    const [isMobile, setIsMobile] = useState(false); // Whether on mobile/tablet
     const [debugMode, setDebugMode] = useState(false);
     const [batchTaggingProgress, setBatchTaggingProgress] = useState(null); // { totalBatches, completedBatches } or null when not tagging
 
@@ -35,6 +37,51 @@ export const VideoProvider = ({ children }) => {
     const closeToast = (id) => {
         setToasts(prev => prev.filter(toast => toast.id !== id));
     };
+
+    // Check if Chrome extension is actually available/reachable
+    const checkExtensionAvailable = useCallback(async () => {
+
+        const settings = await dataStore.getSettings();
+        const extensionId = settings.extensionId;
+
+
+        if (!extensionId) {
+
+            setExtensionAvailable(false);
+            return false;
+        }
+
+        if (typeof chrome === 'undefined' || !chrome.runtime) {
+
+            setExtensionAvailable(false);
+            return false;
+        }
+
+        return new Promise((resolve) => {
+            // Set a timeout to avoid hanging
+            const timeout = setTimeout(() => {
+
+                setExtensionAvailable(false);
+                resolve(false);
+            }, 1000);
+
+            chrome.runtime.sendMessage(extensionId, { type: 'PING' }, (response) => {
+                clearTimeout(timeout);
+
+                if (chrome.runtime.lastError) {
+
+                    setExtensionAvailable(false);
+                    resolve(false);
+                    return;
+                }
+
+                const available = response?.success === true;
+
+                setExtensionAvailable(available);
+                resolve(available);
+            });
+        });
+    }, []);
 
     // Helper function to perform delta sync
     const performDeltaSync = async (existingVideos, existingTags, newVideos, syncComplete) => {
@@ -248,6 +295,16 @@ export const VideoProvider = ({ children }) => {
         }
     };
 
+    // Mobile detection
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 1024); // lg breakpoint
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
     useEffect(() => {
         // Load initial data from dataStore
         const loadInitialData = async () => {
@@ -285,6 +342,9 @@ export const VideoProvider = ({ children }) => {
             const settings = await dataStore.getSettings();
             setHasExtensionId(!!settings.extensionId && settings.extensionId.trim() !== '');
             setDebugMode(settings.debugMode || false);
+
+            // Check if extension is actually available
+            checkExtensionAvailable();
         };
 
         loadInitialData();
@@ -338,6 +398,8 @@ export const VideoProvider = ({ children }) => {
                 const settings = await dataStore.getSettings();
                 setHasExtensionId(!!settings.extensionId && settings.extensionId.trim() !== '');
                 setDebugMode(settings.debugMode || false);
+                // Re-check extension availability when settings change
+                checkExtensionAvailable();
             }
         });
 
@@ -346,7 +408,7 @@ export const VideoProvider = ({ children }) => {
             window.removeEventListener('message', handleMessage);
             unsubscribe();
         };
-    }, []);
+    }, [checkExtensionAvailable]);
 
     // Exit selection mode when category changes
     useEffect(() => {
@@ -494,31 +556,22 @@ export const VideoProvider = ({ children }) => {
     // See retagSelectedWithGemini for an example of proper bulk tag updates.
     const addTag = async (videoId, tag) => {
         console.log(`[addTag] Called with videoId: ${videoId}, tag: "${tag}"`);
-        console.log(`[addTag] Current tags for video:`, tags[videoId]);
 
-        // Use functional update to ensure we work with the latest state
-        let updatedTags;
-        setTags(prevTags => {
-            const newTags = { ...prevTags };
-            if (!newTags[videoId]) {
-                newTags[videoId] = [];
-                console.log(`[addTag] Created new tag array for video ${videoId}`);
-            }
-            if (!newTags[videoId].includes(tag)) {
-                newTags[videoId].push(tag);
-                console.log(`[addTag] Added tag "${tag}" to video ${videoId}. New tags:`, newTags[videoId]);
-                updatedTags = newTags;
-                return newTags;
-            } else {
-                console.log(`[addTag] Tag "${tag}" already exists for video ${videoId}, skipping`);
-                return prevTags;
-            }
-        });
+        const newTags = { ...tags };
+        if (!newTags[videoId]) {
+            newTags[videoId] = [];
+            console.log(`[addTag] Created new tag array for video ${videoId}`);
+        }
 
-        // Save to dataStore if we actually updated
-        if (updatedTags) {
-            await dataStore.setTags(updatedTags);
+        if (!newTags[videoId].includes(tag)) {
+            newTags[videoId] = [...newTags[videoId], tag];
+            console.log(`[addTag] Added tag "${tag}" to video ${videoId}. New tags:`, newTags[videoId]);
+
+            setTags(newTags);
+            await dataStore.setTags(newTags);
             setAllTags(prev => new Set(prev).add(tag));
+        } else {
+            console.log(`[addTag] Tag "${tag}" already exists for video ${videoId}, skipping`);
         }
     };
 
@@ -855,6 +908,8 @@ export const VideoProvider = ({ children }) => {
             cancelSync,
             isSyncing,
             hasExtensionId,
+            extensionAvailable,
+            isMobile,
             searchQuery,
             setSearchQuery,
             selectionMode,

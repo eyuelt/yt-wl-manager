@@ -62,6 +62,15 @@ const VideoGrid = () => {
         rowVirtualizer.measure();
     }, [columnCount, rowVirtualizer]);
 
+    // Log when window resizes
+    useEffect(() => {
+        const handleResize = () => {
+            console.log('resolution changed');
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     return (
         <div className="flex-1 min-h-0 flex flex-col">
             {/* Video Grid */}
