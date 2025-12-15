@@ -76,7 +76,7 @@ const VideoGrid = () => {
                     shadowColor="rgba(3, 7, 18, 0.7)"
                     shadowSize={40}
                 >
-                    <div ref={setContentRef} className="p-6">
+                    <div ref={setContentRef} className="p-3 sm:p-6">
                         <div
                             style={{
                                 height: `${rowVirtualizer.getTotalSize()}px`,
@@ -102,7 +102,7 @@ const VideoGrid = () => {
                                         }}
                                     >
                                         <div
-                                            className="grid gap-6 mb-6 select-none"
+                                            className="grid gap-3 sm:gap-6 mb-3 sm:mb-6 select-none"
                                             style={{
                                                 gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`
                                             }}

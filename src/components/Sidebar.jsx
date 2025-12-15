@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useVideoContext } from '../context/VideoContext';
-import { Tag, Hash, Database, Settings as SettingsIcon } from 'lucide-react';
+import { Tag, Hash, Database, Settings as SettingsIcon, X } from 'lucide-react';
 import DataViewer from './DataViewer';
 import Settings from './Settings';
 import TagMenu from './TagMenu';
@@ -8,7 +8,7 @@ import MergeTagModal from './MergeTagModal';
 import RenameTagModal from './RenameTagModal';
 import ScrollView from './ScrollView';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }) => {
     const { allTags, selectedCategory, setSelectedCategory, videos, tags, updateTagColor, getTagColor, renameTag, mergeTag, deleteTag } = useVideoContext();
     const [isDataViewerOpen, setIsDataViewerOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -36,11 +36,19 @@ const Sidebar = () => {
     };
 
     return (
-        <div className="w-64 bg-gray-900 h-screen fixed left-0 top-0 overflow-y-auto border-r border-gray-800 flex flex-col">
+        <div className={`w-64 bg-gray-900 h-screen fixed left-0 top-0 overflow-y-auto border-r border-gray-800 flex flex-col z-40 transition-transform duration-300 lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
             <div className="p-6">
-                <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
-                    <span className="text-red-600">▶</span> Watch Later
-                </h1>
+                <div className="flex items-center justify-between">
+                    <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                        <span className="text-red-600">▶</span> Watch Later
+                    </h1>
+                    <button
+                        onClick={onClose}
+                        className="lg:hidden p-2 -mr-2 text-gray-400 hover:text-white"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
                 <p className="text-gray-400 text-sm">{unarchivedCount} videos</p>
             </div>
 

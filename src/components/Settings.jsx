@@ -59,9 +59,9 @@ const Settings = ({ isOpen, onClose }) => {
                 onClick={onClose}
             />
             {/* Modal */}
-            <div className="bg-gray-900 rounded-lg shadow-2xl max-w-2xl w-full flex flex-col border border-gray-700 relative z-10 pointer-events-auto">
+            <div className="bg-gray-900 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col border border-gray-700 relative z-10 pointer-events-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-800">
+                <div className="flex items-center justify-between p-4 border-b border-gray-800 flex-shrink-0">
                     <h2 className="text-xl font-bold text-white">Settings</h2>
                     <button
                         onClick={onClose}
@@ -72,7 +72,7 @@ const Settings = ({ isOpen, onClose }) => {
                 </div>
 
                 {/* Content */}
-                <div className="p-6 space-y-6">
+                <div className="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1">
                     {/* Gemini API Key Section */}
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -157,7 +157,7 @@ const Settings = ({ isOpen, onClose }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-2 p-4 border-t border-gray-800">
+                <div className="flex items-center justify-end gap-2 p-4 border-t border-gray-800 flex-shrink-0">
                     <button
                         onClick={onClose}
                         className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"

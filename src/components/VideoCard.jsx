@@ -112,11 +112,11 @@ const VideoCard = ({ video, index }) => {
                 </a>
             </div>
 
-            <div className="p-4 flex-1 flex flex-col relative">
-                <h3 className="text-white font-semibold text-lg leading-tight mb-2 select-text truncate" title={video.title}>
+            <div className="p-3 sm:p-4 flex-1 flex flex-col relative">
+                <h3 className="text-white font-semibold text-base sm:text-lg leading-tight mb-1 sm:mb-2 select-text truncate" title={video.title}>
                     {video.title}
                 </h3>
-                <p className="text-gray-400 text-sm mb-4 select-text truncate">{video.channel}</p>
+                <p className="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4 select-text truncate">{video.channel}</p>
 
                 <div className="mt-auto">
                     <div className="flex flex-wrap gap-2">
