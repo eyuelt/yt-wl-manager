@@ -94,7 +94,7 @@ export const GoogleDriveProvider = ({ children }) => {
 
     // Periodically check if local data differs from Drive data
     useEffect(() => {
-        if (syncMode !== 'editor') {
+        if (!isSignedIn || syncMode === 'disabled') {
             setHasUnsyncedChanges(false);
             return;
         }
@@ -126,7 +126,7 @@ export const GoogleDriveProvider = ({ children }) => {
         const interval = setInterval(checkForChanges, 10000);
 
         return () => clearInterval(interval);
-    }, [syncMode]);
+    }, [isSignedIn, syncMode]);
 
     // Handle initial setup after sign-in
     const handleInitialSetup = useCallback(async () => {

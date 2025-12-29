@@ -1,9 +1,9 @@
 import React from 'react';
-import { Cloud, CloudOff, Lock, AlertCircle, Check, ArrowUpDown, CloudUpload } from 'lucide-react';
+import { Cloud, CloudOff, Lock, AlertCircle, Check, ArrowUpDown, CloudUpload, CloudDownload } from 'lucide-react';
 import { useGoogleDrive } from '../context/GoogleDriveContext';
 
 const SyncStatusIndicator = () => {
-    const { isSignedIn, syncMode, isSyncing, syncError, lastSyncTime, hasUnsyncedChanges, syncToDrive } = useGoogleDrive();
+    const { isSignedIn, syncMode, isSyncing, syncError, lastSyncTime, hasUnsyncedChanges, syncToDrive, syncFromDrive } = useGoogleDrive();
 
     // Don't show anything if not signed in
     if (!isSignedIn) {
@@ -25,6 +25,12 @@ const SyncStatusIndicator = () => {
         Icon = ArrowUpDown;
         color = 'text-blue-500';
         tooltip = 'Syncing with Google Drive...';
+    } else if (syncMode === 'readonly' && hasUnsyncedChanges) {
+        Icon = CloudDownload;
+        color = 'text-blue-500';
+        tooltip = 'Click to sync from Google Drive';
+        isClickable = true;
+        onClick = syncFromDrive;
     } else if (syncMode === 'readonly') {
         Icon = Lock;
         color = 'text-yellow-500';
