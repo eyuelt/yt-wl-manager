@@ -4,6 +4,27 @@ import userEvent from '@testing-library/user-event';
 import Sidebar from './Sidebar';
 import { VideoProvider } from '../context/VideoContext';
 
+// Mock GoogleDriveContext
+vi.mock('../context/GoogleDriveContext', () => ({
+    useGoogleDrive: vi.fn(() => ({
+        syncMode: 'disabled',
+        isSignedIn: false,
+        isSyncing: false
+    }))
+}));
+
+// Mock ResizeObserver
+global.ResizeObserver = class ResizeObserver {
+    constructor(callback) {
+        this.callback = callback;
+    }
+    observe() {
+        this.callback([{ target: { offsetWidth: 1280 } }]);
+    }
+    unobserve() {}
+    disconnect() {}
+};
+
 const renderWithContext = (component) => {
     return render(<VideoProvider>{component}</VideoProvider>);
 };

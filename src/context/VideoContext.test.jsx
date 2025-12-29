@@ -2,6 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { VideoProvider, useVideoContext } from './VideoContext';
 
+// Mock GoogleDriveContext
+vi.mock('./GoogleDriveContext', () => ({
+    useGoogleDrive: vi.fn(() => ({
+        syncMode: 'disabled',
+        isSignedIn: false,
+        isSyncing: false
+    }))
+}));
+
 // Mock dataStore to control async data loading
 vi.mock('../utils/dataStore', () => ({
     default: {

@@ -1,8 +1,17 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import VideoCard from './VideoCard';
 import { VideoProvider } from '../context/VideoContext';
+
+// Mock GoogleDriveContext
+vi.mock('../context/GoogleDriveContext', () => ({
+    useGoogleDrive: vi.fn(() => ({
+        syncMode: 'disabled',
+        isSignedIn: false,
+        isSyncing: false
+    }))
+}));
 
 const mockVideo = {
     id: 'test-video-1',

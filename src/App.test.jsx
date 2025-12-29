@@ -3,6 +3,24 @@ import { render, screen, waitFor } from '@testing-library/react';
 import App from './App';
 import { VideoProvider } from './context/VideoContext';
 
+// Mock GoogleDriveContext
+vi.mock('./context/GoogleDriveContext', () => ({
+    useGoogleDrive: vi.fn(() => ({
+        syncMode: 'disabled',
+        isSignedIn: false,
+        isSyncing: false,
+        conflictModal: {
+            isOpen: false,
+            type: null,
+            localData: null,
+            driveData: null,
+            onResolve: null
+        },
+        resolveConflict: vi.fn(),
+        closeConflictModal: vi.fn()
+    }))
+}));
+
 // Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {
     constructor(callback) {

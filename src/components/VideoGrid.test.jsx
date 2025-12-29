@@ -3,6 +3,15 @@ import { render, screen, waitFor } from '@testing-library/react';
 import VideoGrid from './VideoGrid';
 import { VideoProvider } from '../context/VideoContext';
 
+// Mock GoogleDriveContext
+vi.mock('../context/GoogleDriveContext', () => ({
+    useGoogleDrive: vi.fn(() => ({
+        syncMode: 'disabled',
+        isSignedIn: false,
+        isSyncing: false
+    }))
+}));
+
 // Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {
     constructor(callback) {
@@ -36,11 +45,10 @@ describe('VideoGrid', () => {
     });
 
     it('renders an empty grid when no videos', async () => {
-        const { container } = renderWithContext(<VideoGrid />);
+        renderWithContext(<VideoGrid />);
 
         await waitFor(() => {
-            const gridContainer = container.querySelector('.grid');
-            expect(gridContainer).toBeInTheDocument();
+            expect(screen.getByText('No videos found.')).toBeInTheDocument();
         });
     });
 });
