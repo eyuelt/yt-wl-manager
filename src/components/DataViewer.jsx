@@ -77,7 +77,12 @@ const DataViewer = ({ isOpen, onClose }) => {
     };
 
     const modalContent = (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none" style={{
+            paddingTop: 'max(1rem, env(safe-area-inset-top))',
+            paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+            paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+            paddingRight: 'max(1rem, env(safe-area-inset-right))'
+        }}>
             {/* Backdrop - sibling to pane */}
             <div
                 className="absolute inset-0 bg-gray-500 opacity-60 pointer-events-auto"

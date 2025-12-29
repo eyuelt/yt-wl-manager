@@ -35,7 +35,11 @@ const BulkActionsBar = () => {
         : "Re-tag with AI";
 
     return (
-        <div className="fixed bottom-4 sm:bottom-6 left-2 right-2 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 bg-gray-900 border border-gray-700 rounded-lg shadow-2xl px-3 py-3 sm:px-6 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 z-50">
+        <div className="fixed bottom-4 sm:bottom-6 left-2 right-2 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 bg-gray-900 border border-gray-700 rounded-lg shadow-2xl px-3 py-3 sm:px-6 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 z-50" style={{
+            left: 'max(0.5rem, env(safe-area-inset-left))',
+            right: 'max(0.5rem, env(safe-area-inset-right))',
+            bottom: 'max(1rem, env(safe-area-inset-bottom))'
+        }}>
             <div className="text-white font-medium text-center sm:text-left">
                 {selectedVideos.size} video{selectedVideos.size !== 1 ? 's' : ''} selected
             </div>

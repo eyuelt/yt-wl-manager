@@ -1,7 +1,63 @@
 @import "tailwindcss";
 
+/* iOS Safe Area Support */
 body {
     overflow: hidden;
+    /* Only handle bottom safe area - top will be handled by individual components */
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* iOS-specific touch and interaction improvements */
+* {
+    /* Prevent text selection on long press */
+    -webkit-user-select: none;
+    user-select: none;
+
+    /* Disable callout (copy/paste menu) on long press */
+    -webkit-touch-callout: none;
+
+    /* Prevent tap highlight on iOS */
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Re-enable text selection for inputs, textareas, and content areas */
+input,
+textarea,
+[contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* Smooth momentum scrolling on iOS */
+.scrollable,
+[class*="overflow-y"],
+[class*="overflow-auto"] {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent pull-to-refresh on iOS */
+body {
+    overscroll-behavior-y: contain;
+}
+
+/* Responsive sidebar width - expand in landscape orientation */
+@media (orientation: landscape) {
+    .sidebar-responsive {
+        width: max(16rem, 40vw) !important;
+    }
+}
+
+@media (min-width: 1024px) {
+    .main-responsive {
+        margin-left: max(16rem, 40vw);
+    }
+}
+
+/* In landscape on mobile, sidebar is overlay so no margin needed */
+@media (orientation: landscape) and (max-width: 1023px) {
+    .main-responsive {
+        margin-left: 0;
+    }
 }
 
 .scrollbar-hide {

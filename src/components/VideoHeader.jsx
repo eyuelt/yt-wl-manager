@@ -17,7 +17,11 @@ const VideoHeader = ({ onMenuClick }) => {
         : isSyncing ? 'Cancel sync' : 'Sync videos';
 
     return (
-        <div className="flex-none p-4 sm:p-6 pb-4 border-b border-gray-800">
+        <div className="flex-none p-4 sm:p-6 pb-4 border-b border-gray-800 bg-gray-950" style={{
+            paddingTop: 'max(1rem, env(safe-area-inset-top))',
+            paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+            paddingRight: 'max(1rem, env(safe-area-inset-right))'
+        }}>
             <div className="flex items-center justify-between gap-3 sm:gap-4 lg:gap-8">
                 {/* Hamburger menu for mobile */}
                 <button

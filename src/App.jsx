@@ -18,7 +18,7 @@ function App() {
           onClick={() => setSidebarOpen(false)}
         />
       )}
-      <main className="flex-1 lg:ml-64 h-screen flex flex-col">
+      <main className="flex-1 main-responsive h-screen flex flex-col bg-gray-950">
         <VideoHeader onMenuClick={() => setSidebarOpen(true)} />
         <VideoGrid />
       </main>

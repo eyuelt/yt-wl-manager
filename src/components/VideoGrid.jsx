@@ -85,7 +85,10 @@ const VideoGrid = () => {
                     shadowColor="rgba(3, 7, 18, 0.7)"
                     shadowSize={40}
                 >
-                    <div ref={setContentRef} className="p-3 sm:p-6">
+                    <div ref={setContentRef} className="p-3 sm:p-6" style={{
+                        paddingLeft: 'max(0.75rem, env(safe-area-inset-left))',
+                        paddingRight: 'max(0.75rem, env(safe-area-inset-right))'
+                    }}>
                         <div
                             style={{
                                 height: `${rowVirtualizer.getTotalSize()}px`,
