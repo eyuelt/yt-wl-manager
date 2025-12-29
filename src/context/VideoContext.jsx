@@ -2,12 +2,14 @@ import React, { createContext, useState, useEffect, useContext, useRef, useCallb
 import { geminiBatchTag, geminiBatchTagWithProgress } from '../utils/geminiTag';
 import dataStore from '../utils/dataStore';
 import Toast from '../components/Toast';
+import { useGoogleDrive } from './GoogleDriveContext';
 
 const VideoContext = createContext();
 
 export const useVideoContext = () => useContext(VideoContext);
 
 export const VideoProvider = ({ children }) => {
+    const { syncMode } = useGoogleDrive();
     const [videos, setVideos] = useState([]);
     const [tags, setTags] = useState({}); // { videoId: ['tag1', 'tag2'] }
     const [allTags, setAllTags] = useState(new Set());
@@ -888,6 +890,9 @@ export const VideoProvider = ({ children }) => {
         return bTime - aTime;
     });
 
+    // Compute read-only mode based on Google Drive sync state
+    const isReadOnly = syncMode === 'readonly';
+
     return (
         <VideoContext.Provider value={{
             videos,
@@ -923,7 +928,8 @@ export const VideoProvider = ({ children }) => {
             retagSelectedWithGemini,
             showToast,
             debugMode,
-            batchTaggingProgress
+            batchTaggingProgress,
+            isReadOnly
         }}>
             {children}
             {toasts.map(toast => (

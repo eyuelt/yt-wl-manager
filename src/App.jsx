@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import VideoHeader from './components/VideoHeader';
 import VideoGrid from './components/VideoGrid';
 import BulkActionsBar from './components/BulkActionsBar';
+import ConflictResolutionModal from './components/ConflictResolutionModal';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -22,6 +23,7 @@ function App() {
         <VideoGrid />
       </main>
       <BulkActionsBar />
+      <ConflictResolutionModal />
     </div>
   );
 }

@@ -2,12 +2,15 @@ import React from 'react';
 import { CheckSquare, RefreshCw, Loader2, Menu } from 'lucide-react';
 import { useVideoContext } from '../context/VideoContext';
 import SearchBar from './SearchBar';
+import SyncStatusIndicator from './SyncStatusIndicator';
 
 const VideoHeader = ({ onMenuClick }) => {
-    const { selectionMode, toggleSelectionMode, syncVideos, cancelSync, isSyncing, hasExtensionId, extensionAvailable, isMobile, batchTaggingProgress } = useVideoContext();
+    const { selectionMode, toggleSelectionMode, syncVideos, cancelSync, isSyncing, hasExtensionId, extensionAvailable, isMobile, batchTaggingProgress, isReadOnly } = useVideoContext();
 
-    const syncDisabled = isMobile || (!extensionAvailable && !isSyncing);
-    const syncTitle = isMobile
+    const syncDisabled = isMobile || (!extensionAvailable && !isSyncing) || isReadOnly;
+    const syncTitle = isReadOnly
+        ? 'Read-only mode - YouTube sync modifies local data and is disabled'
+        : isMobile
         ? 'Sync only works on desktop with the Chrome extension'
         : !extensionAvailable
         ? 'Chrome extension not detected. Install the extension and configure the ID in Settings.'
@@ -46,6 +49,7 @@ const VideoHeader = ({ onMenuClick }) => {
                             </div>
                         </div>
                     )}
+                    <SyncStatusIndicator />
                     <button
                         onClick={toggleSelectionMode}
                         className={`flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-3 rounded-lg font-medium transition-colors ${

@@ -4,7 +4,7 @@ import { useVideoContext } from '../context/VideoContext';
 import dataStore from '../utils/dataStore';
 
 const BulkActionsBar = () => {
-    const { selectedVideos, selectedCategory, selectionMode, archiveSelected, unarchiveSelected, deleteSelected, clearSelection, retagSelectedWithGemini } = useVideoContext();
+    const { selectedVideos, selectedCategory, selectionMode, archiveSelected, unarchiveSelected, deleteSelected, clearSelection, retagSelectedWithGemini, isReadOnly } = useVideoContext();
     const [hasGeminiKey, setHasGeminiKey] = useState(false);
 
     useEffect(() => {
@@ -27,8 +27,10 @@ const BulkActionsBar = () => {
 
     if (!selectionMode && selectedVideos.size === 0) return null;
 
-    const aiTagDisabled = selectedVideos.size === 0 || !hasGeminiKey;
-    const aiTagTitle = !hasGeminiKey
+    const aiTagDisabled = selectedVideos.size === 0 || !hasGeminiKey || isReadOnly;
+    const aiTagTitle = isReadOnly
+        ? "Read-only mode - cannot modify data"
+        : !hasGeminiKey
         ? "Add your Gemini API key in Settings to enable this feature"
         : "Re-tag with AI";
 
@@ -51,18 +53,18 @@ const BulkActionsBar = () => {
                     <>
                         <button
                             onClick={unarchiveSelected}
-                            disabled={selectedVideos.size === 0}
+                            disabled={selectedVideos.size === 0 || isReadOnly}
                             className="flex items-center gap-2 px-3 py-2 sm:px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-                            title="Unarchive selected"
+                            title={isReadOnly ? "Read-only mode - cannot modify data" : "Unarchive selected"}
                         >
                             <ArchiveRestore size={18} />
                             <span className="hidden xs:inline sm:inline">Unarchive</span>
                         </button>
                         <button
                             onClick={deleteSelected}
-                            disabled={selectedVideos.size === 0}
+                            disabled={selectedVideos.size === 0 || isReadOnly}
                             className="flex items-center gap-2 px-3 py-2 sm:px-4 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-                            title="Delete selected"
+                            title={isReadOnly ? "Read-only mode - cannot modify data" : "Delete selected"}
                         >
                             <Trash2 size={18} />
                             <span className="hidden xs:inline sm:inline">Delete</span>
@@ -71,9 +73,9 @@ const BulkActionsBar = () => {
                 ) : (
                     <button
                         onClick={archiveSelected}
-                        disabled={selectedVideos.size === 0}
+                        disabled={selectedVideos.size === 0 || isReadOnly}
                         className="flex items-center gap-2 px-3 py-2 sm:px-4 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-                        title="Archive selected"
+                        title={isReadOnly ? "Read-only mode - cannot modify data" : "Archive selected"}
                     >
                         <Archive size={18} />
                         <span className="hidden xs:inline sm:inline">Archive</span>

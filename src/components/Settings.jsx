@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Save, Eye, EyeOff } from 'lucide-react';
 import dataStore from '../utils/dataStore';
 import { useVideoContext } from '../context/VideoContext';
+import GoogleDriveSection from './GoogleDriveSection';
 
 const Settings = ({ isOpen, onClose }) => {
     const { showToast, isMobile } = useVideoContext();
@@ -30,7 +31,10 @@ const Settings = ({ isOpen, onClose }) => {
     const handleSave = async () => {
         setIsSaving(true);
         try {
+            // Get existing settings to preserve fields like googleOAuthClientId
+            const existingSettings = await dataStore.getSettings();
             await dataStore.setSettings({
+                ...existingSettings,
                 geminiApiKey: geminiApiKey.trim(),
                 extensionId: extensionId.trim(),
                 debugMode: debugMode
@@ -164,6 +168,9 @@ const Settings = ({ isOpen, onClose }) => {
                             Shows video IDs in the bottom right corner of each video card for debugging purposes.
                         </p>
                     </div>
+
+                    {/* Google Drive Sync Section */}
+                    <GoogleDriveSection />
                 </div>
 
                 {/* Footer */}

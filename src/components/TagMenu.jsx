@@ -14,7 +14,7 @@ const PRESET_COLORS = [
     '#EC4899', // Pink
 ];
 
-const TagMenu = ({ tag, color, onColorChange, onMergeClick, onRenameClick, onDeleteClick }) => {
+const TagMenu = ({ tag, color, onColorChange, onMergeClick, onRenameClick, onDeleteClick, isReadOnly = false }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [showCustomPicker, setShowCustomPicker] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -80,111 +80,122 @@ const TagMenu = ({ tag, color, onColorChange, onMergeClick, onRenameClick, onDel
             }}
         >
             {/* Change Color */}
-            <div className="p-3">
-                <div className="flex items-center gap-2 mb-2 px-1">
-                    <Palette size={16} className="text-gray-400" />
-                    <span className="text-white text-sm font-medium">Change Color</span>
-                </div>
+            {!isReadOnly && (
+                <div className="p-3">
+                    <div className="flex items-center gap-2 mb-2 px-1">
+                        <Palette size={16} className="text-gray-400" />
+                        <span className="text-white text-sm font-medium">Change Color</span>
+                    </div>
 
-                {!showCustomPicker ? (
-                    <>
-                        {/* Preset color grid */}
-                        <div className="grid grid-cols-3 gap-2 mb-2">
-                            {PRESET_COLORS.map((presetColor) => (
-                                <button
-                                    key={presetColor}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onColorChange(tag, presetColor);
-                                    }}
-                                    className={`w-full h-8 rounded border-2 transition-all ${
-                                        color.toUpperCase() === presetColor.toUpperCase()
-                                            ? 'border-white scale-110'
-                                            : 'border-gray-600 hover:border-gray-400'
-                                    }`}
-                                    style={{ backgroundColor: presetColor }}
-                                    title={presetColor}
+                    {!showCustomPicker ? (
+                        <>
+                            {/* Preset color grid */}
+                            <div className="grid grid-cols-3 gap-2 mb-2">
+                                {PRESET_COLORS.map((presetColor) => (
+                                    <button
+                                        key={presetColor}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onColorChange(tag, presetColor);
+                                        }}
+                                        className={`w-full h-8 rounded border-2 transition-all ${
+                                            color.toUpperCase() === presetColor.toUpperCase()
+                                                ? 'border-white scale-110'
+                                                : 'border-gray-600 hover:border-gray-400'
+                                        }`}
+                                        style={{ backgroundColor: presetColor }}
+                                        title={presetColor}
+                                    />
+                                ))}
+                            </div>
+                            {/* Custom color button */}
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowCustomPicker(true);
+                                }}
+                                className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded transition-colors text-sm text-white"
+                            >
+                                <Palette size={14} />
+                                Custom Color
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            {/* Custom color picker */}
+                            <div className="flex items-center gap-2 mb-2">
+                                <input
+                                    type="color"
+                                    value={color}
+                                    onChange={handleColorChange}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="w-full h-10 rounded cursor-pointer"
                                 />
-                            ))}
-                        </div>
-                        {/* Custom color button */}
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowCustomPicker(true);
-                            }}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded transition-colors text-sm text-white"
-                        >
-                            <Palette size={14} />
-                            Custom Color
-                        </button>
-                    </>
-                ) : (
-                    <>
-                        {/* Custom color picker */}
-                        <div className="flex items-center gap-2 mb-2">
-                            <input
-                                type="color"
-                                value={color}
-                                onChange={handleColorChange}
-                                onClick={(e) => e.stopPropagation()}
-                                className="w-full h-10 rounded cursor-pointer"
-                            />
-                        </div>
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowCustomPicker(false);
-                            }}
-                            className="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded transition-colors text-sm text-white"
-                        >
-                            Back to Presets
-                        </button>
-                    </>
-                )}
-            </div>
+                            </div>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowCustomPicker(false);
+                                }}
+                                className="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded transition-colors text-sm text-white"
+                            >
+                                Back to Presets
+                            </button>
+                        </>
+                    )}
+                </div>
+            )}
+            {!isReadOnly && <div className="border-t border-gray-700" />}
 
-            {/* Divider */}
-            <div className="border-t border-gray-700" />
+            {/* Read-only message */}
+            {isReadOnly && (
+                <div className="p-4 text-center text-gray-400 text-sm">
+                    Read-only mode - tag editing disabled
+                </div>
+            )}
 
             {/* Rename Tag */}
-            <div className="p-2">
-                <button
-                    onClick={handleRenameClick}
-                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-700 rounded transition-colors text-left"
-                >
-                    <Edit3 size={16} className="text-gray-400" />
-                    <span className="text-white text-sm">Rename Tag</span>
-                </button>
-            </div>
+            {!isReadOnly && (
+                <>
+                    <div className="p-2">
+                        <button
+                            onClick={handleRenameClick}
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-700 rounded transition-colors text-left"
+                        >
+                            <Edit3 size={16} className="text-gray-400" />
+                            <span className="text-white text-sm">Rename Tag</span>
+                        </button>
+                    </div>
 
-            {/* Divider */}
-            <div className="border-t border-gray-700" />
+                    {/* Divider */}
+                    <div className="border-t border-gray-700" />
 
-            {/* Merge Tag */}
-            <div className="p-2">
-                <button
-                    onClick={handleMergeClick}
-                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-700 rounded transition-colors text-left"
-                >
-                    <GitMerge size={16} className="text-gray-400" />
-                    <span className="text-white text-sm">Merge Into...</span>
-                </button>
-            </div>
+                    {/* Merge Tag */}
+                    <div className="p-2">
+                        <button
+                            onClick={handleMergeClick}
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-700 rounded transition-colors text-left"
+                        >
+                            <GitMerge size={16} className="text-gray-400" />
+                            <span className="text-white text-sm">Merge Into...</span>
+                        </button>
+                    </div>
 
-            {/* Divider */}
-            <div className="border-t border-gray-700" />
+                    {/* Divider */}
+                    <div className="border-t border-gray-700" />
 
-            {/* Delete Tag */}
-            <div className="p-2">
-                <button
-                    onClick={handleDeleteClick}
-                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-red-900/50 rounded transition-colors text-left"
-                >
-                    <Trash2 size={16} className="text-red-400" />
-                    <span className="text-red-400 text-sm">Delete Tag</span>
-                </button>
-            </div>
+                    {/* Delete Tag */}
+                    <div className="p-2">
+                        <button
+                            onClick={handleDeleteClick}
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-red-900/50 rounded transition-colors text-left"
+                        >
+                            <Trash2 size={16} className="text-red-400" />
+                            <span className="text-red-400 text-sm">Delete Tag</span>
+                        </button>
+                    </div>
+                </>
+            )}
         </div>
     );
 

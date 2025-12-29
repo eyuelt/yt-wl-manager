@@ -3,7 +3,7 @@ import { useVideoContext } from '../context/VideoContext';
 import { Plus, X, ExternalLink, Check, Copy } from 'lucide-react';
 
 const VideoCard = ({ video, index }) => {
-    const { tags, addTag, removeTag, getTagColor, selectionMode, selectedVideos, toggleVideoSelection, toggleSelectionMode, debugMode, showToast } = useVideoContext();
+    const { tags, addTag, removeTag, getTagColor, selectionMode, selectedVideos, toggleVideoSelection, toggleSelectionMode, debugMode, showToast, isReadOnly } = useVideoContext();
     const [isAddingTag, setIsAddingTag] = useState(false);
     const [newTag, setNewTag] = useState('');
 
@@ -127,7 +127,7 @@ const VideoCard = ({ video, index }) => {
                                 style={{ backgroundColor: getTagColor(tag) }}
                             >
                                 {tag}
-                                {!selectionMode && (
+                                {!selectionMode && !isReadOnly && (
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -140,7 +140,7 @@ const VideoCard = ({ video, index }) => {
                                 )}
                             </span>
                         ))}
-                        {!selectionMode && (
+                        {!selectionMode && !isReadOnly && (
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();

@@ -9,7 +9,7 @@ import RenameTagModal from './RenameTagModal';
 import ScrollView from './ScrollView';
 
 const Sidebar = ({ isOpen, onClose }) => {
-    const { allTags, selectedCategory, setSelectedCategory, videos, tags, updateTagColor, getTagColor, renameTag, mergeTag, deleteTag } = useVideoContext();
+    const { allTags, selectedCategory, setSelectedCategory, videos, tags, updateTagColor, getTagColor, renameTag, mergeTag, deleteTag, isReadOnly } = useVideoContext();
     const [isDataViewerOpen, setIsDataViewerOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
@@ -135,6 +135,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                                             setIsMergeModalOpen(true);
                                         }}
                                         onDeleteClick={deleteTag}
+                                        isReadOnly={isReadOnly}
                                     />
                                 )}
                             </div>
