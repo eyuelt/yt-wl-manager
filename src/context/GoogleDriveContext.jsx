@@ -22,6 +22,7 @@ export const GoogleDriveProvider = ({ children }) => {
     const [isSyncing, setIsSyncing] = useState(false);
     const [lastSyncTime, setLastSyncTime] = useState(null);
     const [syncError, setSyncError] = useState(null);
+    const [hasUnsyncedChanges, setHasUnsyncedChanges] = useState(false);
 
     // Lock state
     const [isLockOwner, setIsLockOwner] = useState(false);
@@ -90,6 +91,42 @@ export const GoogleDriveProvider = ({ children }) => {
             checkLockStatus();
         }
     }, [isSignedIn, checkLockStatus]);
+
+    // Periodically check if local data differs from Drive data
+    useEffect(() => {
+        if (syncMode !== 'editor') {
+            setHasUnsyncedChanges(false);
+            return;
+        }
+
+        const checkForChanges = async () => {
+            try {
+                // Get local data
+                const localVideos = await dataStore.getVideos();
+                const localTags = await dataStore.getTags();
+                const localMetadata = await dataStore.getTagMetadata();
+
+                // Get Drive data
+                const driveData = await driveSync.syncFromDrive();
+
+                // Compare data
+                const localDataStr = JSON.stringify({ videos: localVideos, tags: localTags, metadata: localMetadata });
+                const driveDataStr = JSON.stringify(driveData || { videos: [], tags: {}, metadata: {} });
+
+                setHasUnsyncedChanges(localDataStr !== driveDataStr);
+            } catch (error) {
+                console.error('Error checking for changes:', error);
+            }
+        };
+
+        // Check immediately
+        checkForChanges();
+
+        // Then check every 10 seconds
+        const interval = setInterval(checkForChanges, 10000);
+
+        return () => clearInterval(interval);
+    }, [syncMode]);
 
     // Handle initial setup after sign-in
     const handleInitialSetup = useCallback(async () => {
@@ -266,6 +303,7 @@ export const GoogleDriveProvider = ({ children }) => {
 
         await driveSync.syncToDrive({ videos, tags, metadata });
         setLastSyncTime(Date.now());
+        setHasUnsyncedChanges(false);
     };
 
     // Sync FROM Drive
@@ -358,6 +396,7 @@ export const GoogleDriveProvider = ({ children }) => {
         isSyncing,
         lastSyncTime,
         syncError,
+        hasUnsyncedChanges,
 
         // Lock state
         isLockOwner,

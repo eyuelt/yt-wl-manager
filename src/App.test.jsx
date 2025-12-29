@@ -9,6 +9,7 @@ vi.mock('./context/GoogleDriveContext', () => ({
         syncMode: 'disabled',
         isSignedIn: false,
         isSyncing: false,
+        hasUnsyncedChanges: false,
         conflictModal: {
             isOpen: false,
             type: null,

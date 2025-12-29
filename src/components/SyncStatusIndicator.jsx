@@ -1,19 +1,21 @@
 import React from 'react';
-import { Cloud, CloudOff, Lock, AlertCircle, Check, ArrowUpDown } from 'lucide-react';
+import { Cloud, CloudOff, Lock, AlertCircle, Check, ArrowUpDown, CloudUpload } from 'lucide-react';
 import { useGoogleDrive } from '../context/GoogleDriveContext';
 
 const SyncStatusIndicator = () => {
-    const { isSignedIn, syncMode, isSyncing, syncError, lastSyncTime } = useGoogleDrive();
+    const { isSignedIn, syncMode, isSyncing, syncError, lastSyncTime, hasUnsyncedChanges, syncToDrive } = useGoogleDrive();
 
     // Don't show anything if not signed in
     if (!isSignedIn) {
         return null;
     }
 
-    // Determine icon and color
+    // Determine icon, color, and click handler
     let Icon = Cloud;
     let color = 'text-gray-400';
     let tooltip = 'Google Drive connected';
+    let isClickable = false;
+    let onClick = null;
 
     if (syncError) {
         Icon = AlertCircle;
@@ -27,6 +29,12 @@ const SyncStatusIndicator = () => {
         Icon = Lock;
         color = 'text-yellow-500';
         tooltip = 'Read-only mode - Another device is editing';
+    } else if (syncMode === 'editor' && hasUnsyncedChanges) {
+        Icon = CloudUpload;
+        color = 'text-orange-500';
+        tooltip = 'Click to sync changes to Google Drive';
+        isClickable = true;
+        onClick = syncToDrive;
     } else if (syncMode === 'editor' && lastSyncTime) {
         Icon = Check;
         color = 'text-green-500';
@@ -35,12 +43,14 @@ const SyncStatusIndicator = () => {
     }
 
     return (
-        <div
-            className={`flex items-center gap-2 ${color}`}
+        <button
+            onClick={isClickable ? onClick : undefined}
+            disabled={!isClickable}
+            className={`flex items-center gap-2 ${color} ${isClickable ? 'cursor-pointer hover:scale-110 transition-transform' : 'cursor-default'}`}
             title={tooltip}
         >
             <Icon size={20} className={isSyncing ? 'animate-pulse' : ''} />
-        </div>
+        </button>
     );
 };
 

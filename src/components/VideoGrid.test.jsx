@@ -8,7 +8,8 @@ vi.mock('../context/GoogleDriveContext', () => ({
     useGoogleDrive: vi.fn(() => ({
         syncMode: 'disabled',
         isSignedIn: false,
-        isSyncing: false
+        isSyncing: false,
+        hasUnsyncedChanges: false,
     }))
 }));
 
