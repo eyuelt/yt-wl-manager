@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import * as driveSync from '../utils/googleDriveSync';
 import dataStore from '../utils/dataStore';
+import { computeSyncDiff } from '../utils/syncDiff';
+import SyncConfirmationModal from '../components/SyncConfirmationModal';
 
 const GoogleDriveContext = createContext(null);
 
@@ -35,6 +37,13 @@ export const GoogleDriveProvider = ({ children }) => {
         localData: null,
         driveData: null,
         onResolve: null
+    });
+
+    // Sync confirmation state
+    const [syncConfirmation, setSyncConfirmation] = useState({
+        isOpen: false,
+        diff: null,
+        onConfirm: null
     });
 
     // OAuth Client ID from settings
@@ -257,7 +266,6 @@ export const GoogleDriveProvider = ({ children }) => {
     // Sync TO Drive
     const syncToDrive = useCallback(async () => {
         try {
-            setIsSyncing(true);
             setSyncError(null);
 
             // Check if we own the lock
@@ -274,8 +282,8 @@ export const GoogleDriveProvider = ({ children }) => {
                             if (choice === 'takeover') {
                                 await driveSync.acquireLock();
                                 await checkLockStatus();
-                                // Now sync
-                                await performSyncToDrive();
+                                // Now show confirmation
+                                await showSyncConfirmation('to-drive');
                                 resolve();
                             } else {
                                 reject(new Error('User cancelled sync'));
@@ -285,33 +293,34 @@ export const GoogleDriveProvider = ({ children }) => {
                 });
             }
 
-            await performSyncToDrive();
+            await showSyncConfirmation('to-drive');
         } catch (error) {
             console.error('Sync to Drive error:', error);
             setSyncError(error.message);
             throw error;
-        } finally {
-            setIsSyncing(false);
         }
     }, [checkLockStatus]);
 
     // Helper to perform the actual sync to Drive
     const performSyncToDrive = async () => {
-        const videos = await dataStore.getVideos();
-        const tags = await dataStore.getTags();
-        const metadata = await dataStore.getTagMetadata();
+        setIsSyncing(true);
+        try {
+            const videos = await dataStore.getVideos();
+            const tags = await dataStore.getTags();
+            const metadata = await dataStore.getTagMetadata();
 
-        await driveSync.syncToDrive({ videos, tags, metadata });
-        setLastSyncTime(Date.now());
-        setHasUnsyncedChanges(false);
+            await driveSync.syncToDrive({ videos, tags, metadata });
+            setLastSyncTime(Date.now());
+            setHasUnsyncedChanges(false);
+        } finally {
+            setIsSyncing(false);
+        }
     };
 
-    // Sync FROM Drive
-    const syncFromDrive = useCallback(async () => {
+    // Helper to perform the actual sync from Drive
+    const performSyncFromDrive = async () => {
+        setIsSyncing(true);
         try {
-            setIsSyncing(true);
-            setSyncError(null);
-
             const driveData = await driveSync.syncFromDrive();
             if (!driveData) {
                 throw new Error('No data found in Google Drive');
@@ -321,12 +330,56 @@ export const GoogleDriveProvider = ({ children }) => {
             await dataStore.setTags(driveData.tags);
             await dataStore.setTagMetadata(driveData.metadata);
             setLastSyncTime(Date.now());
+            setHasUnsyncedChanges(false);
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
+    // Show sync confirmation modal with diff
+    const showSyncConfirmation = async (direction) => {
+        // Get local and drive data
+        const localVideos = await dataStore.getVideos();
+        const localTags = await dataStore.getTags();
+        const localMetadata = await dataStore.getTagMetadata();
+        const localData = { videos: localVideos, tags: localTags, metadata: localMetadata };
+
+        const driveData = await driveSync.syncFromDrive();
+
+        // Compute diff
+        const diff = computeSyncDiff(localData, driveData, direction);
+
+        // Show confirmation modal
+        return new Promise((resolve, reject) => {
+            setSyncConfirmation({
+                isOpen: true,
+                diff,
+                onConfirm: async () => {
+                    setSyncConfirmation({ isOpen: false, diff: null, onConfirm: null });
+                    try {
+                        if (direction === 'to-drive') {
+                            await performSyncToDrive();
+                        } else {
+                            await performSyncFromDrive();
+                        }
+                        resolve();
+                    } catch (error) {
+                        reject(error);
+                    }
+                }
+            });
+        });
+    };
+
+    // Sync FROM Drive
+    const syncFromDrive = useCallback(async () => {
+        try {
+            setSyncError(null);
+            await showSyncConfirmation('from-drive');
         } catch (error) {
             console.error('Sync from Drive error:', error);
             setSyncError(error.message);
             throw error;
-        } finally {
-            setIsSyncing(false);
         }
     }, []);
 
@@ -416,9 +469,20 @@ export const GoogleDriveProvider = ({ children }) => {
         releaseEditControl,
     };
 
+    // Handle cancel sync confirmation
+    const handleCancelSync = () => {
+        setSyncConfirmation({ isOpen: false, diff: null, onConfirm: null });
+    };
+
     return (
         <GoogleDriveContext.Provider value={value}>
             {children}
+            <SyncConfirmationModal
+                isOpen={syncConfirmation.isOpen}
+                diff={syncConfirmation.diff}
+                onConfirm={syncConfirmation.onConfirm}
+                onCancel={handleCancelSync}
+            />
         </GoogleDriveContext.Provider>
     );
 };
