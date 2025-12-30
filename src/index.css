@@ -3,8 +3,8 @@
 /* iOS Safe Area Support */
 body {
     overflow: hidden;
-    /* Only handle bottom safe area - top will be handled by individual components */
-    padding-bottom: env(safe-area-inset-bottom);
+    /* Match app background color for overscroll areas */
+    background-color: #030712; /* gray-950 */
 }
 
 /* iOS-specific touch and interaction improvements */
@@ -40,25 +40,20 @@ body {
     overscroll-behavior-y: contain;
 }
 
-/* Responsive sidebar width - expand in landscape orientation */
-@media (orientation: landscape) {
+/* Responsive sidebar width - expand in landscape orientation on mobile only */
+@media (orientation: landscape) and (max-width: 1023px) {
     .sidebar-responsive {
         width: max(16rem, 40vw) !important;
     }
 }
 
+/* Desktop: fixed sidebar width with margin on main content */
 @media (min-width: 1024px) {
     .main-responsive {
-        margin-left: max(16rem, 40vw);
+        margin-left: 16rem;
     }
 }
 
-/* In landscape on mobile, sidebar is overlay so no margin needed */
-@media (orientation: landscape) and (max-width: 1023px) {
-    .main-responsive {
-        margin-left: 0;
-    }
-}
 
 .scrollbar-hide {
     -ms-overflow-style: none;
