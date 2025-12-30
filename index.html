@@ -3,11 +3,51 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/yt-wl-manager/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Viewport with iOS optimizations -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
     <title>YouTube Watch Later Manager</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/yt-wl-manager/manifest.json" />
+
+    <!-- Theme Colors -->
+    <meta name="theme-color" content="#DC2626" />
+    <meta name="msapplication-TileColor" content="#DC2626" />
+
+    <!-- iOS Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="YT Watch Later" />
+
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icon-192.png" />
+
+    <!-- iOS Splash Screens (optional, using solid color) -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- Description -->
+    <meta name="description" content="Manage and organize your YouTube Watch Later videos with tags and search" />
+
+    <!-- Google Sign In -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script type="module" crossorigin src="/yt-wl-manager/assets/index-CmvxzbIl.js"></script>
-    <link rel="stylesheet" crossorigin href="/yt-wl-manager/assets/index-B3wxV8wE.css">
+
+    <!-- Register Service Worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Service Worker registered:', reg.scope))
+            .catch(err => console.error('Service Worker registration failed:', err));
+        });
+      }
+    </script>
+    <script type="module" crossorigin src="/yt-wl-manager/assets/index-BwTo9aom.js"></script>
+    <link rel="stylesheet" crossorigin href="/yt-wl-manager/assets/index-B6PnLGje.css">
   </head>
   <body>
     <div id="root"></div>
