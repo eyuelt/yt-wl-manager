@@ -73,6 +73,14 @@ const SyncConfirmationModal = ({ isOpen, diff, onConfirm, onCancel }) => {
                                     </div>
                                 )}
 
+                                {/* Videos with metadata changes */}
+                                {diff.videosWithMetadataChanges > 0 && (
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-300">Videos with metadata changes</span>
+                                        <span className="text-yellow-400">{diff.videosWithMetadataChanges}</span>
+                                    </div>
+                                )}
+
                                 {/* Tags */}
                                 {(diff.tagsAdded > 0 || diff.tagsRemoved > 0) && (
                                     <div className="flex items-center justify-between text-sm">

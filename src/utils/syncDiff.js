@@ -9,12 +9,45 @@ export function computeSyncDiff(localData, driveData, direction) {
     const source = direction === 'to-drive' ? local : drive;
     const target = direction === 'to-drive' ? drive : local;
 
-    // Video differences
+    // Create maps for easier lookup
+    const sourceVideosMap = new Map(source.videos.map(v => [v.id, v]));
+    const targetVideosMap = new Map(target.videos.map(v => [v.id, v]));
+
     const sourceVideoIds = new Set(source.videos.map(v => v.id));
     const targetVideoIds = new Set(target.videos.map(v => v.id));
 
+    // Videos added/removed
     const videosAdded = source.videos.filter(v => !targetVideoIds.has(v.id)).length;
     const videosRemoved = target.videos.filter(v => !sourceVideoIds.has(v.id)).length;
+
+    // Videos with metadata changes (title, channel, thumbnail, etc.)
+    let videosWithMetadataChanges = 0;
+    const commonVideoIds = [...sourceVideoIds].filter(id => targetVideoIds.has(id));
+
+    for (const videoId of commonVideoIds) {
+        const sourceVideo = sourceVideosMap.get(videoId);
+        const targetVideo = targetVideosMap.get(videoId);
+
+        // Compare relevant fields (excluding lastSync which is expected to differ)
+        const sourceData = {
+            title: sourceVideo.title,
+            channel: sourceVideo.channel,
+            thumbnail: sourceVideo.thumbnail,
+            url: sourceVideo.url,
+            archived: sourceVideo.archived
+        };
+        const targetData = {
+            title: targetVideo.title,
+            channel: targetVideo.channel,
+            thumbnail: targetVideo.thumbnail,
+            url: targetVideo.url,
+            archived: targetVideo.archived
+        };
+
+        if (JSON.stringify(sourceData) !== JSON.stringify(targetData)) {
+            videosWithMetadataChanges++;
+        }
+    }
 
     // Tag differences (count unique tag names)
     const sourceTagNames = new Set();
@@ -46,9 +79,10 @@ export function computeSyncDiff(localData, driveData, direction) {
         direction,
         videosAdded,
         videosRemoved,
+        videosWithMetadataChanges,
         tagsAdded,
         tagsRemoved,
         videosWithTagChanges,
-        hasChanges: videosAdded > 0 || videosRemoved > 0 || tagsAdded > 0 || tagsRemoved > 0 || videosWithTagChanges > 0
+        hasChanges: videosAdded > 0 || videosRemoved > 0 || videosWithMetadataChanges > 0 || tagsAdded > 0 || tagsRemoved > 0 || videosWithTagChanges > 0
     };
 }
