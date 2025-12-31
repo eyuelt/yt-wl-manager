@@ -91,11 +91,19 @@ export function initGoogleAuth(clientId) {
         },
     });
 
-    // Try to restore token from localStorage
+    // Try to restore token from localStorage and refresh it
     const storedToken = getStoredToken();
     if (storedToken) {
         accessToken = storedToken;
         notifyAuthChange({ isSignedIn: true, user: null });
+
+        // Silently refresh the token on page load to get a fresh one
+        signInSilent().catch(error => {
+            console.log('Silent refresh failed, user will need to sign in again:', error);
+            clearStoredToken();
+            accessToken = null;
+            notifyAuthChange({ isSignedIn: false, user: null });
+        });
     }
 }
 
