@@ -3,6 +3,7 @@ import { CheckSquare, RefreshCw, Loader2, Menu } from 'lucide-react';
 import { useVideoContext } from '../context/VideoContext';
 import SearchBar from './SearchBar';
 import SyncStatusIndicator from './SyncStatusIndicator';
+import SyncModeBanner from './SyncModeBanner';
 
 const VideoHeader = ({ onMenuClick }) => {
     const { selectionMode, toggleSelectionMode, syncVideos, cancelSync, isSyncing, hasExtensionId, extensionAvailable, isMobile, batchTaggingProgress, isReadOnly } = useVideoContext();
@@ -17,21 +18,22 @@ const VideoHeader = ({ onMenuClick }) => {
         : isSyncing ? 'Cancel sync' : 'Sync videos';
 
     return (
-        <div className="flex-none p-4 sm:p-6 pb-4 border-b border-gray-800 bg-gray-950" style={{
-            paddingTop: 'max(1rem, env(safe-area-inset-top))',
-            paddingLeft: 'max(1rem, env(safe-area-inset-left))',
-            paddingRight: 'max(1rem, env(safe-area-inset-right))'
-        }}>
-            <div className="flex items-center justify-between gap-3 sm:gap-4 lg:gap-8">
-                {/* Hamburger menu for mobile */}
-                <button
-                    onClick={onMenuClick}
-                    className="lg:hidden p-2 -ml-2 text-gray-400 hover:text-white flex-shrink-0"
-                >
-                    <Menu size={24} />
-                </button>
-                <SearchBar />
-                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        <div className="flex-none border-b border-gray-800 bg-gray-950">
+            <div className="p-4 sm:p-6 pb-4" style={{
+                paddingTop: 'max(1rem, env(safe-area-inset-top))',
+                paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+                paddingRight: 'max(1rem, env(safe-area-inset-right))'
+            }}>
+                <div className="flex items-center justify-between gap-3 sm:gap-4 lg:gap-8">
+                    {/* Hamburger menu for mobile */}
+                    <button
+                        onClick={onMenuClick}
+                        className="lg:hidden p-2 -ml-2 text-gray-400 hover:text-white flex-shrink-0"
+                    >
+                        <Menu size={24} />
+                    </button>
+                    <SearchBar />
+                    <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     {batchTaggingProgress && (
                         <div
                             className="flex items-center gap-2 px-2 py-2 sm:px-3 bg-gray-800 rounded-lg border border-gray-700 group relative"
@@ -83,8 +85,10 @@ const VideoHeader = ({ onMenuClick }) => {
                             <span className="hidden sm:inline">{isSyncing ? 'Cancel' : 'Sync'}</span>
                         </button>
                     )}
+                    </div>
                 </div>
             </div>
+            <SyncModeBanner />
         </div>
     );
 };

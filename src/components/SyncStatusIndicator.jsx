@@ -3,11 +3,24 @@ import { Cloud, CloudOff, Lock, AlertCircle, Check, ArrowUpDown, CloudUpload, Cl
 import { useGoogleDrive } from '../context/GoogleDriveContext';
 
 const SyncStatusIndicator = () => {
-    const { isSignedIn, syncMode, isSyncing, syncError, lastSyncTime, hasUnsyncedChanges, syncToDrive, syncFromDrive } = useGoogleDrive();
+    const { isSignedIn, syncMode, isSyncing, syncError, lastSyncTime, hasUnsyncedChanges, syncToDrive, syncFromDrive, googleDriveSyncEnabled, signIn } = useGoogleDrive();
 
-    // Don't show anything if not signed in
-    if (!isSignedIn) {
+    // Don't show anything if sync is disabled
+    if (!googleDriveSyncEnabled) {
         return null;
+    }
+
+    // If sync is enabled but not signed in, show a sign-in prompt
+    if (googleDriveSyncEnabled && !isSignedIn) {
+        return (
+            <button
+                onClick={signIn}
+                className="flex items-center gap-2 text-yellow-500 cursor-pointer hover:scale-110 transition-transform"
+                title="Sign in to Google Drive to enable editing"
+            >
+                <Lock size={20} />
+            </button>
+        );
     }
 
     // Determine icon, color, and click handler

@@ -49,10 +49,14 @@ export const GoogleDriveProvider = ({ children }) => {
     // OAuth Client ID from settings
     const [oauthClientId, setOauthClientId] = useState(null);
 
-    // Load OAuth Client ID from settings
+    // Google Drive Sync enabled setting
+    const [googleDriveSyncEnabled, setGoogleDriveSyncEnabled] = useState(false);
+
+    // Load OAuth Client ID and sync setting from settings
     useEffect(() => {
-        const loadClientId = async () => {
+        const loadSettings = async () => {
             const settings = await dataStore.getSettings();
+            setGoogleDriveSyncEnabled(settings.googleDriveSyncEnabled || false);
             if (settings.googleOAuthClientId) {
                 setOauthClientId(settings.googleOAuthClientId);
                 try {
@@ -62,8 +66,20 @@ export const GoogleDriveProvider = ({ children }) => {
                 }
             }
         };
-        loadClientId();
-    }, []);
+        loadSettings();
+
+        // Subscribe to settings changes
+        const unsubscribe = dataStore.subscribe(({ key, value }) => {
+            if (key === dataStore.KEYS.SETTINGS) {
+                setGoogleDriveSyncEnabled(value.googleDriveSyncEnabled || false);
+                if (value.googleOAuthClientId && value.googleOAuthClientId !== oauthClientId) {
+                    setOauthClientId(value.googleOAuthClientId);
+                }
+            }
+        });
+
+        return unsubscribe;
+    }, [oauthClientId]);
 
     // Subscribe to auth state changes
     useEffect(() => {
@@ -93,6 +109,18 @@ export const GoogleDriveProvider = ({ children }) => {
             console.error('Error checking lock status:', error);
         }
     }, []);
+
+    // Update sync mode based on googleDriveSyncEnabled and sign-in status
+    useEffect(() => {
+        if (googleDriveSyncEnabled && !isSignedIn) {
+            // Sync enabled but not signed in = readonly mode
+            setSyncMode('readonly');
+        } else if (!googleDriveSyncEnabled) {
+            // Sync disabled = disabled mode (localStorage only)
+            setSyncMode('disabled');
+        }
+        // When signed in, checkLockStatus will handle setting the correct mode
+    }, [googleDriveSyncEnabled, isSignedIn]);
 
     // When signed in (including from restored token), check lock status
     useEffect(() => {
@@ -223,8 +251,16 @@ export const GoogleDriveProvider = ({ children }) => {
                 });
             }
 
-            // Acquire lock
-            await driveSync.acquireLock();
+            // Check if there's an existing lock
+            const existingLock = await driveSync.getLockfile();
+
+            if (!existingLock) {
+                // No lock exists - acquire it automatically
+                await driveSync.acquireLock();
+            }
+            // If a lock exists, don't take it over automatically
+            // Let the user decide by clicking "Take Over Editing" button
+
             await checkLockStatus();
         } catch (error) {
             console.error('Error in initial setup:', error);
@@ -443,6 +479,7 @@ export const GoogleDriveProvider = ({ children }) => {
         isSignedIn,
         user,
         oauthClientId,
+        googleDriveSyncEnabled,
 
         // Sync state
         syncMode,

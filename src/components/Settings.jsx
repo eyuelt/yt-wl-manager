@@ -12,6 +12,7 @@ const Settings = ({ isOpen, onClose }) => {
     const [showApiKey, setShowApiKey] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [debugMode, setDebugMode] = useState(false);
+    const [googleDriveSyncEnabled, setGoogleDriveSyncEnabled] = useState(false);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -21,6 +22,7 @@ const Settings = ({ isOpen, onClose }) => {
             setGeminiApiKey(settings.geminiApiKey || '');
             setExtensionId(settings.extensionId || '');
             setDebugMode(settings.debugMode || false);
+            setGoogleDriveSyncEnabled(settings.googleDriveSyncEnabled || false);
         };
 
         loadSettings();
@@ -37,7 +39,8 @@ const Settings = ({ isOpen, onClose }) => {
                 ...existingSettings,
                 geminiApiKey: geminiApiKey.trim(),
                 extensionId: extensionId.trim(),
-                debugMode: debugMode
+                debugMode: debugMode,
+                googleDriveSyncEnabled: googleDriveSyncEnabled
             });
             showToast('Settings saved successfully!');
             onClose();
@@ -156,6 +159,30 @@ const Settings = ({ isOpen, onClose }) => {
                         </p>
                     </div>
 
+                    {/* Google Drive Sync Toggle */}
+                    <div>
+                        <label className="flex items-center gap-3 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={googleDriveSyncEnabled}
+                                onChange={(e) => setGoogleDriveSyncEnabled(e.target.checked)}
+                                className="w-5 h-5 bg-gray-800 border border-gray-700 rounded focus:ring-2 focus:ring-red-600 text-red-600 cursor-pointer"
+                            />
+                            <span className="text-sm font-medium text-gray-300">
+                                Enable Google Drive Sync
+                            </span>
+                        </label>
+                        <p className="mt-2 text-sm text-gray-400 ml-8">
+                            Sync your data to Google Drive to access it from any device. When enabled, you must sign in to Google to use the app.
+                        </p>
+                        <p className="mt-1 text-sm text-gray-500 ml-8">
+                            When disabled, your data is stored only in your browser's local storage.
+                        </p>
+                    </div>
+
+                    {/* Google Drive Sync Section - Only show when enabled */}
+                    {googleDriveSyncEnabled && <GoogleDriveSection />}
+
                     {/* Debug Mode Section */}
                     <div>
                         <label className="flex items-center gap-3 cursor-pointer">
@@ -173,9 +200,6 @@ const Settings = ({ isOpen, onClose }) => {
                             Shows video IDs in the bottom right corner of each video card for debugging purposes.
                         </p>
                     </div>
-
-                    {/* Google Drive Sync Section */}
-                    <GoogleDriveSection />
                 </div>
 
                 {/* Footer */}

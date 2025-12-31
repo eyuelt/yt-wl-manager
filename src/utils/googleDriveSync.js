@@ -242,6 +242,15 @@ async function driveRequest(url, options = {}) {
     });
 
     if (!response.ok) {
+        // If we get a 401 Unauthorized, the token is invalid - sign out automatically
+        if (response.status === 401) {
+            console.warn('OAuth token is invalid or expired. Signing out...');
+            clearStoredToken();
+            accessToken = null;
+            notifyAuthChange({ isSignedIn: false, user: null });
+            throw new Error('Session expired. Please sign in again.');
+        }
+
         const error = await response.json().catch(() => ({ error: 'Unknown error' }));
         throw new Error(`Drive API error: ${error.error?.message || response.statusText}`);
     }
